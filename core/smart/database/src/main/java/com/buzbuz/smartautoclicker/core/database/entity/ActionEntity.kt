@@ -162,6 +162,17 @@ data class ActionEntity(
     // ActionType.TEXT
     @ColumnInfo(name = "text_value") val textValue: String? = null,
     @ColumnInfo(name = "text_validate_input") val textValidateInput: Boolean? = null,
+    // ActionType.MULTI_TOUCH
+    @ColumnInfo(name = "first_touch_from_x") val firstTouchFromX: Int? = null,
+    @ColumnInfo(name = "first_touch_from_y") val firstTouchFromY: Int? = null,
+    @ColumnInfo(name = "first_touch_to_x") val firstTouchToX: Int? = null,
+    @ColumnInfo(name = "first_touch_to_y") val firstTouchToY: Int? = null,
+    @ColumnInfo(name = "first_touch_duration") val firstTouchDuration: Long? = null,
+    @ColumnInfo(name = "second_touch_from_x") val secondTouchFromX: Int? = null,
+    @ColumnInfo(name = "second_touch_from_y") val secondTouchFromY: Int? = null,
+    @ColumnInfo(name = "second_touch_to_x") val secondTouchToX: Int? = null,
+    @ColumnInfo(name = "second_touch_to_y") val secondTouchToY: Int? = null,
+    @ColumnInfo(name = "second_touch_duration") val secondTouchDuration: Long? = null,
 ) : EntityWithId
 
 /**

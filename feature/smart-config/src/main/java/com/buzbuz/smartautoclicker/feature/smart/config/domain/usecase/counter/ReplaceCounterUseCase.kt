@@ -20,6 +20,7 @@ import com.buzbuz.smartautoclicker.core.common.actions.text.findCounterReference
 import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
@@ -127,6 +128,7 @@ class ReplaceCounterUseCase @Inject constructor(
             is Pause,
             is SystemAction,
             is Swipe,
+            is MultiTouch,
             is ToggleEvent -> Unit
         }
     }

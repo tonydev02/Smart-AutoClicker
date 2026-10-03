@@ -57,6 +57,7 @@ import javax.inject.Singleton
         AutoMigration (from = 18, to = 19),
         AutoMigration (from = 20, to = 21),
         AutoMigration (from = 22, to = 23),
+        AutoMigration(from = 23, to = 24),
     ]
 )
 abstract class ClickDatabase : ScenarioDatabase()

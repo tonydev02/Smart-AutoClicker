@@ -38,6 +38,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.EventToggle
@@ -319,6 +321,16 @@ class EditedItemsBuilder internal constructor(
             priority = 0,
         )
 
+    fun createNewMultiTouch(context: Context): MultiTouch =
+        MultiTouch(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = getEditedEventIdOrThrow(),
+            name = context.getString(com.buzbuz.smartautoclicker.feature.smart.config.R.string.item_multi_touch_title),
+            priority = 0,
+            firstTouch = TouchStroke(null, null, 250L),
+            secondTouch = TouchStroke(null, null, 250L),
+        )
+
     fun createNewPause(context: Context): Pause =
         Pause(
             id = actionsIdCreator.generateNewIdentifier(),
@@ -410,6 +422,11 @@ class EditedItemsBuilder internal constructor(
 
     fun createNewActionFrom(from: Action, eventId: Identifier = getEditedEventIdOrThrow()): Action = when (from) {
         is Click -> createNewClickFrom(from, eventId)
+        is MultiTouch -> from.copy(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = eventId,
+            name = "" + from.name,
+        )
         is Swipe -> createNewSwipeFrom(from, eventId)
         is Pause -> createNewPauseFrom(from, eventId)
         is Intent -> createNewIntentFrom(from, eventId)

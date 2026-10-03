@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.condition.Condition
@@ -183,6 +184,7 @@ class DebugReportTimelineViewModel @Inject constructor(
         when (this) {
             is Click -> R.drawable.ic_click
             is Swipe -> R.drawable.ic_swipe
+            is MultiTouch -> R.drawable.ic_swipe
             is Pause -> R.drawable.ic_wait
             is Intent -> R.drawable.ic_intent
             is ToggleEvent ->  R.drawable.ic_toggle_event

@@ -36,6 +36,8 @@ enum class MonitoredOverlayType {
     CLICK_OFFSET,
     SWIPE,
     SWIPE_POSITION,
+    MULTI_TOUCH,
+    MULTI_TOUCH_POSITION,
     PAUSE,
     INTENT,
     TOGGLE_EVENT,

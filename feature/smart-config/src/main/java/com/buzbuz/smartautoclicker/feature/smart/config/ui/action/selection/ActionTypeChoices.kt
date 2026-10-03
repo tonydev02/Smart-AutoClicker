@@ -58,6 +58,12 @@ sealed class ActionTypeChoice(
         R.string.item_swipe_desc,
         getSwipeIconRes(),
     )
+    /** Two simultaneous touch strokes. */
+    data object MultiTouch : ActionTypeChoice(
+        R.string.item_multi_touch_title,
+        R.string.item_multi_touch_desc,
+        getSwipeIconRes(),
+    )
     /** Pause Action choice. */
     data object Pause : ActionTypeChoice(
         R.string.item_pause_title,

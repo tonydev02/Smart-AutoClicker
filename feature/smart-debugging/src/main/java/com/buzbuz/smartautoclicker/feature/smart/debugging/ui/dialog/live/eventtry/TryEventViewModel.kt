@@ -27,6 +27,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.OR
 import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
@@ -136,6 +137,7 @@ private fun Action.getDebugIcon(): Int =
         is Pause -> R.drawable.ic_wait
         is SetText -> R.drawable.ic_action_set_text
         is Swipe -> R.drawable.ic_swipe
+        is MultiTouch -> R.drawable.ic_swipe
         is SystemAction -> R.drawable.ic_action_system
         is ToggleEvent -> R.drawable.ic_toggle_event
     }

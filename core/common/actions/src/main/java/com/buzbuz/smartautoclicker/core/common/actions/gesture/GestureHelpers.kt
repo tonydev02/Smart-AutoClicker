@@ -61,7 +61,16 @@ fun GestureDescription.Builder.buildSingleStroke(
     startTime: Long = 0,
     random: Random?,
 ): GestureDescription {
+    addRandomizedStroke(path, durationMs, startTime, random)
+    return build()
+}
 
+fun GestureDescription.Builder.addRandomizedStroke(
+    path: Path,
+    durationMs: Long,
+    startTime: Long = 0,
+    random: Random?,
+): GestureDescription.Builder {
     val actualDurationMs = random
         ?.nextLongInOffset(durationMs, RANDOMIZATION_DURATION_MAX_OFFSET_MS)
         ?: durationMs
@@ -80,7 +89,7 @@ fun GestureDescription.Builder.buildSingleStroke(
         throw IllegalArgumentException("Invalid gesture; Duration=$durationMs", ex)
     }
 
-    return build()
+    return this
 }
 
 private fun Long.toNormalizedStrokeStartTime(): Long =

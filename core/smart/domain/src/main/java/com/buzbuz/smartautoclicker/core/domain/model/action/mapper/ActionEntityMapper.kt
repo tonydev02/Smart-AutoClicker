@@ -30,6 +30,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 
 
 internal fun Action.toEntity(): ActionEntity {
@@ -37,6 +39,7 @@ internal fun Action.toEntity(): ActionEntity {
 
     return when (this) {
         is Click -> toClickEntity()
+        is MultiTouch -> toMultiTouchEntity()
         is Swipe -> toSwipeEntity()
         is Pause -> toPauseEntity()
         is Intent -> toIntentEntity()
@@ -76,6 +79,25 @@ private fun Swipe.toSwipeEntity(): ActionEntity =
         fromY = from?.y,
         toX = to?.x,
         toY = to?.y,
+    )
+
+private fun MultiTouch.toMultiTouchEntity(): ActionEntity =
+    ActionEntity(
+        id = id.databaseId,
+        eventId = eventId.databaseId,
+        priority = priority,
+        name = name!!,
+        type = ActionType.MULTI_TOUCH,
+        firstTouchFromX = firstTouch.from?.x,
+        firstTouchFromY = firstTouch.from?.y,
+        firstTouchToX = firstTouch.to?.x,
+        firstTouchToY = firstTouch.to?.y,
+        firstTouchDuration = firstTouch.durationMs,
+        secondTouchFromX = secondTouch.from?.x,
+        secondTouchFromY = secondTouch.from?.y,
+        secondTouchToX = secondTouch.to?.x,
+        secondTouchToY = secondTouch.to?.y,
+        secondTouchDuration = secondTouch.durationMs,
     )
 
 private fun Pause.toPauseEntity(): ActionEntity =

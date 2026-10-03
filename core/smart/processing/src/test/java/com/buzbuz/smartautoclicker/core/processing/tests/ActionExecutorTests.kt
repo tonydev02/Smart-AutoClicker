@@ -32,6 +32,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ActionExecutor
@@ -224,6 +226,32 @@ class ActionExecutorTests {
         val gestureCaptor = argumentCaptor<GestureDescription>()
         verify(mockAndroidExecutor).dispatchGesture(gestureCaptor.capture())
         assertActionGesture(gestureCaptor.lastValue)
+    }
+
+    @Test
+    fun execute_multiTouch_dispatchesTwoSimultaneousStrokesInOneGesture() = runTest {
+        val action = MultiTouch(
+            id = Identifier(databaseId = 5L),
+            eventId = TEST_EVENT_ID,
+            name = TEST_NAME,
+            priority = 0,
+            firstTouch = TouchStroke(Point(TEST_X1, TEST_Y1), Point(TEST_X1, TEST_Y1), 25L),
+            secondTouch = TouchStroke(Point(TEST_X2, TEST_Y2), Point(40, 50), 50L),
+        )
+        val gestureCaptor = argumentCaptor<GestureDescription>()
+
+        actionExecutor.executeActions(
+            event = getNewDefaultEvent(actions = listOf(action)),
+            results = ConditionsResults(),
+        )
+
+        verify(mockAndroidExecutor, times(1)).dispatchGesture(gestureCaptor.capture())
+        val gesture = gestureCaptor.lastValue
+        assertEquals(2, gesture.strokeCount)
+        assertEquals(0L, gesture.getStroke(0).startTime)
+        assertEquals(0L, gesture.getStroke(1).startTime)
+        assertEquals(25L, gesture.getStroke(0).duration)
+        assertEquals(50L, gesture.getStroke(1).duration)
     }
 
     @Test

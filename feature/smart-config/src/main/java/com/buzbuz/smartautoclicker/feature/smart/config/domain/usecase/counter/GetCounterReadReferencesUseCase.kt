@@ -21,6 +21,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
@@ -116,6 +117,7 @@ class GetCounterReadReferencesUseCase @Inject constructor(
                     is Pause,
                     is SystemAction,
                     is Swipe,
+                    is MultiTouch,
                     is ToggleEvent -> Unit
                 }
             }

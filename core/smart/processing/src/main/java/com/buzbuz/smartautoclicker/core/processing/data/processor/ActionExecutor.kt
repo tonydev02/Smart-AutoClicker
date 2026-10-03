@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.common.actions.AndroidActionExecutor
 import com.buzbuz.smartautoclicker.core.common.actions.gesture.buildSingleStroke
 import com.buzbuz.smartautoclicker.core.common.actions.gesture.line
 import com.buzbuz.smartautoclicker.core.common.actions.gesture.moveTo
+import com.buzbuz.smartautoclicker.core.common.actions.gesture.addRandomizedStroke
 import com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest
 import com.buzbuz.smartautoclicker.core.common.actions.text.findCounterReferences
 import com.buzbuz.smartautoclicker.core.common.actions.text.replaceCounterReferences
@@ -39,6 +40,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
@@ -93,6 +96,7 @@ internal class ActionExecutor(
         event.actions.forEach { action ->
             when (action) {
                 is Click -> executeClick(event, action, results)
+                is MultiTouch -> executeMultiTouch(action)
                 is Swipe -> executeSwipe(action)
                 is Pause -> executePause(action)
                 is Intent -> executeIntent(action)
@@ -170,6 +174,28 @@ internal class ActionExecutor(
             androidExecutor.dispatchGesture(swipeGesture)
         }
     }
+
+    private suspend fun executeMultiTouch(action: MultiTouch) {
+        val first = action.firstTouch
+        val second = action.secondTouch
+        if (first.from == null || first.to == null || second.from == null || second.to == null) return
+        val firstDuration = first.durationMs ?: return
+        val secondDuration = second.durationMs ?: return
+        val gesture = GestureDescription.Builder()
+            .addRandomizedStroke(first.toPath(), firstDuration, startTime = 0L, random = random)
+            .addRandomizedStroke(second.toPath(), secondDuration, startTime = 0L, random = random)
+            .build()
+
+        withContext(Dispatchers.Main) {
+            androidExecutor.dispatchGesture(gesture)
+        }
+    }
+
+    private fun TouchStroke.toPath(): Path =
+        Path().apply {
+            if (from == to) moveTo(from!!, random)
+            else line(from, to, random)
+        }
 
     /**
      * Execute the provided pause.

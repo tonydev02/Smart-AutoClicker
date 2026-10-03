@@ -20,12 +20,15 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
 
 /** Convert an Action entity into a Domain Action. */
 internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = when (action.type) {
     ActionType.CLICK -> toDomainClick(cleanIds)
+    ActionType.MULTI_TOUCH -> toDomainMultiTouch(cleanIds)
     ActionType.SWIPE -> toDomainSwipe(cleanIds)
     ActionType.PAUSE -> toDomainPause(cleanIds)
     ActionType.INTENT -> toDomainIntent(cleanIds)
@@ -48,6 +51,23 @@ private fun CompleteActionEntity.toDomainClick(cleanIds: Boolean = false) = Clic
     clickOffset =
         if (action.clickOffsetX != null && action.clickOffsetY != null) Point(action.clickOffsetX!!, action.clickOffsetY!!)
         else null
+)
+
+private fun CompleteActionEntity.toDomainMultiTouch(cleanIds: Boolean = false) = MultiTouch(
+    id = Identifier(id = action.id, asTemporary = cleanIds),
+    eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
+    name = action.name,
+    priority = action.priority,
+    firstTouch = TouchStroke(
+        from = getPositionIfValid(action.firstTouchFromX, action.firstTouchFromY),
+        to = getPositionIfValid(action.firstTouchToX, action.firstTouchToY),
+        durationMs = action.firstTouchDuration,
+    ),
+    secondTouch = TouchStroke(
+        from = getPositionIfValid(action.secondTouchFromX, action.secondTouchFromY),
+        to = getPositionIfValid(action.secondTouchToX, action.secondTouchToY),
+        durationMs = action.secondTouchDuration,
+    ),
 )
 
 private fun CompleteActionEntity.toDomainSwipe(cleanIds: Boolean = false) = Swipe(

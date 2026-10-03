@@ -78,6 +78,9 @@
 
     <string name="item_swipe_title">Swipe</string>
     <string name="item_swipe_desc">Swipe from a position on the screen to another</string>
+    <string name="item_multi_touch_title">Multi-touch</string>
+    <string name="item_multi_touch_desc">Touch the screen with two simultaneous strokes</string>
+    <string name="item_multi_touch_details">Touch 1: %1$s, Touch 2: %2$s</string>
     <string name="item_swipe_details">During %1$s</string>
 
     <string name="item_pause_title">Wait</string>
@@ -359,6 +362,13 @@
     <!-- Dialog Action Swipe ======================================================================================= -->
 
     <string name="dialog_title_swipe">Swipe</string>
+    <string name="dialog_title_multi_touch">Multi-touch</string>
+    <string name="field_multi_touch_first_title">Touch 1</string>
+    <string name="field_multi_touch_second_title">Touch 2</string>
+    <string name="field_multi_touch_first_duration">Touch 1 duration (ms)</string>
+    <string name="field_multi_touch_second_duration">Touch 2 duration (ms)</string>
+    <string name="field_multi_touch_positions_title">Touch %1$d positions</string>
+    <string name="field_multi_touch_positions_desc">From %1$d, %2$d to %3$d, %4$d</string>
 
     <string name="field_swipe_positions_title">Swipe positions</string>
     <string name="field_swipe_positions_desc">Swipe from %1$d, %2$d to %3$d, %4$d</string>

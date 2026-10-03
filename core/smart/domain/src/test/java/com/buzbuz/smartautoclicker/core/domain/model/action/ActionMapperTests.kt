@@ -17,12 +17,18 @@
 package com.buzbuz.smartautoclicker.core.domain.model.action
 
 import android.os.Build
+import android.graphics.Point
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.buzbuz.smartautoclicker.core.database.entity.CompleteActionEntity
+import com.buzbuz.smartautoclicker.core.domain.utils.asIdentifier
 import com.buzbuz.smartautoclicker.core.domain.model.action.mapper.toDomain
 import com.buzbuz.smartautoclicker.core.domain.model.action.mapper.toEntity
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -62,6 +68,46 @@ class ActionMapperTests {
             ActionTestsData.getNewSwipe(eventId = ActionTestsData.ACTION_EVENT_ID),
             ActionTestsData.getNewSwipeEntity(eventId = ActionTestsData.ACTION_EVENT_ID).toDomain(),
         )
+    }
+
+    @Test
+    fun multiTouch_mapsBothStrokesRoundTrip() {
+        val action = MultiTouch(
+            id = 17L.asIdentifier(),
+            eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+            name = "Two fingers",
+            priority = 3,
+            firstTouch = TouchStroke(Point(10, 20), Point(30, 40), 125L),
+            secondTouch = TouchStroke(Point(50, 60), Point(50, 60), 500L),
+        )
+
+        val entity = action.toEntity()
+        assertEquals(action, CompleteActionEntity(entity, emptyList(), emptyList()).toDomain())
+        assertEquals(10, entity.firstTouchFromX)
+        assertEquals(500L, entity.secondTouchDuration)
+    }
+
+    @Test
+    fun multiTouch_validatesCompletenessAndCopiesWithoutIds() {
+        val validStroke = TouchStroke(Point(1, 2), Point(3, 4), 50L)
+        val action = MultiTouch(
+            id = 1L.asIdentifier(),
+            eventId = 2L.asIdentifier(),
+            name = "Two fingers",
+            priority = 0,
+            firstTouch = validStroke,
+            secondTouch = validStroke.copy(),
+        )
+
+        assertTrue(action.isComplete())
+        assertFalse(action.copy(name = "").isComplete())
+        assertFalse(action.copy(firstTouch = validStroke.copy(durationMs = 60_000L)).isComplete())
+        assertFalse(action.copy(secondTouch = validStroke.copy(from = null)).isComplete())
+        assertFalse(action.copy(secondTouch = validStroke.copy(durationMs = 0L)).isComplete())
+        assertNotSame(action.firstTouch.from, action.deepCopy().firstTouch.from)
+        assertEquals(action.hashCodeNoIds(), action.copy(id = 3L.asIdentifier(), eventId = 4L.asIdentifier()).hashCodeNoIds())
+        assertEquals(action, action.deepCopy())
+        assertEquals(9L, action.copyBase(id = 9L.asIdentifier()).id.databaseId)
     }
 
     @Test

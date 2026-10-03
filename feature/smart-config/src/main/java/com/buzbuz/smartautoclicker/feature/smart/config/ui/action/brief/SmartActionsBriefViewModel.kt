@@ -131,6 +131,7 @@ class SmartActionsBriefViewModel @Inject constructor(
                 if (!legacyEnabled && canCopy) add(ActionTypeChoice.Copy)
                 add(ActionTypeChoice.Click)
                 add(ActionTypeChoice.Swipe)
+                add(ActionTypeChoice.MultiTouch)
                 add(ActionTypeChoice.Pause)
                 add(ActionTypeChoice.SetText)
                 add(ActionTypeChoice.System)
@@ -174,6 +175,7 @@ class SmartActionsBriefViewModel @Inject constructor(
 
     override fun createAction(context: Context, choice: ActionTypeChoice): Action = when (choice) {
         ActionTypeChoice.Click -> editionRepository.editedItemsBuilder.createNewClick(context)
+        ActionTypeChoice.MultiTouch -> editionRepository.editedItemsBuilder.createNewMultiTouch(context)
         ActionTypeChoice.Swipe -> editionRepository.editedItemsBuilder.createNewSwipe(context)
         ActionTypeChoice.Pause -> editionRepository.editedItemsBuilder.createNewPause(context)
         ActionTypeChoice.Intent -> editionRepository.editedItemsBuilder.createNewIntent(context)

@@ -18,6 +18,7 @@ package com.buzbuz.smartautoclicker.core.domain.utils
 
 import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
@@ -78,6 +79,7 @@ private fun assertSameActionNoIdCheck(expected: Action, actual: Action) {
     when {
         expected is Click && actual is Click -> assertSameClickNoIdCheck(expected, actual)
         expected is Swipe && actual is Swipe -> assertSameSwipeNoIdCheck(expected, actual)
+        expected is MultiTouch && actual is MultiTouch -> assertEquals(expected.copy(id = actual.id, eventId = actual.eventId), actual)
         expected is Pause && actual is Pause -> assertSamePauseNoIdCheck(expected, actual)
         expected is Intent && actual is Intent -> assertSameIntentNoIdCheck(expected, actual)
         expected is ToggleEvent && actual is ToggleEvent -> assertSameToggleEventNoIdCheck(expected, actual)

@@ -37,6 +37,8 @@ enum class EventType {
 enum class ActionType {
     /** A single tap on the screen. */
     CLICK,
+    /** A touch gesture with two simultaneous strokes. */
+    MULTI_TOUCH,
     /** A swipe on the screen. */
     SWIPE,
     /** A pause, waiting before the next action. */

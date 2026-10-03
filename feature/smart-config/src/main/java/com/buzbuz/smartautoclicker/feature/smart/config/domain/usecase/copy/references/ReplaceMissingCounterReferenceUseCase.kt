@@ -25,6 +25,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
@@ -106,6 +107,7 @@ class ReplaceMissingCounterReferenceUseCase @Inject constructor() {
             is Intent,
             is Pause,
             is Swipe,
+            is MultiTouch,
             is SystemAction,
             is ToggleEvent -> {
                 Log.e(TAG, "Can't replace counter reference, action type is not supported.")
