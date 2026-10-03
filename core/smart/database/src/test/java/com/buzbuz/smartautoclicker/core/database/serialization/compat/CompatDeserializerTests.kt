@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionType
 import com.buzbuz.smartautoclicker.core.database.entity.CounterComparisonOperation
+import com.buzbuz.smartautoclicker.core.database.serialization.DeserializerFactory
 
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -207,7 +208,7 @@ class CompatDeserializerTests {
             )
         )
 
-        val result = deserializer.deserializeAction(json, emptyList(), 1)
+        val result = deserializeActionForVersion(24, json)
 
         assertNotNull(result)
         assertEquals(ActionType.MULTI_TOUCH, result!!.type)
@@ -224,4 +225,195 @@ class CompatDeserializerTests {
         assertNull(result.firstTouchMode)
         assertNull(result.secondTouchMode)
     }
+
+    @Test
+    fun deserializeAction_multiTouchFromV25_preservesPressAndRandomAreaModes() {
+        val json = createActionJson(
+            ActionType.MULTI_TOUCH,
+            mapOf(
+                "firstTouchMode" to JsonPrimitive("PRESS"),
+                "firstTouchFromX" to JsonPrimitive(50),
+                "firstTouchFromY" to JsonPrimitive(60),
+                "firstTouchDuration" to JsonPrimitive(300L),
+                "secondTouchMode" to JsonPrimitive("RANDOM_AREA"),
+                "secondTouchDuration" to JsonPrimitive(400L),
+                "secondTouchAreaLeft" to JsonPrimitive(10),
+                "secondTouchAreaTop" to JsonPrimitive(20),
+                "secondTouchAreaRight" to JsonPrimitive(40),
+                "secondTouchAreaBottom" to JsonPrimitive(60),
+            ),
+        )
+
+        val result = deserializeActionForVersion(25, json)!!
+
+        assertEquals(ActionType.MULTI_TOUCH, result.type)
+        assertEquals("PRESS", result.firstTouchMode)
+        assertEquals(50, result.firstTouchFromX)
+        assertEquals(60, result.firstTouchFromY)
+        assertNull(result.firstTouchToX)
+        assertNull(result.firstTouchToY)
+        assertEquals("RANDOM_AREA", result.secondTouchMode)
+        assertNull(result.secondTouchFromX)
+        assertNull(result.secondTouchToX)
+        assertEquals(10, result.secondTouchAreaLeft)
+        assertEquals(20, result.secondTouchAreaTop)
+        assertEquals(40, result.secondTouchAreaRight)
+        assertEquals(60, result.secondTouchAreaBottom)
+    }
+
+    @Test
+    fun deserializeAction_multiTouchFromV26_preservesRandomAreaEndpoint() {
+        val json = createActionJson(
+            ActionType.MULTI_TOUCH,
+            mapOf(
+                "firstTouchMode" to JsonPrimitive("RANDOM_AREA"),
+                "firstTouchDuration" to JsonPrimitive(500L),
+                "firstTouchAreaLeft" to JsonPrimitive(10),
+                "firstTouchAreaTop" to JsonPrimitive(20),
+                "firstTouchAreaRight" to JsonPrimitive(40),
+                "firstTouchAreaBottom" to JsonPrimitive(60),
+                "firstTouchRandomEndX" to JsonPrimitive(70),
+                "firstTouchRandomEndY" to JsonPrimitive(80),
+                "secondTouchMode" to JsonPrimitive("PRESS"),
+                "secondTouchFromX" to JsonPrimitive(30),
+                "secondTouchFromY" to JsonPrimitive(40),
+                "secondTouchDuration" to JsonPrimitive(600L),
+            ),
+        )
+
+        val result = deserializeActionForVersion(26, json)!!
+
+        assertEquals("RANDOM_AREA", result.firstTouchMode)
+        assertEquals(10, result.firstTouchAreaLeft)
+        assertEquals(20, result.firstTouchAreaTop)
+        assertEquals(40, result.firstTouchAreaRight)
+        assertEquals(60, result.firstTouchAreaBottom)
+        assertEquals(500L, result.firstTouchDuration)
+        assertEquals(70, result.firstTouchRandomEndX)
+        assertEquals(80, result.firstTouchRandomEndY)
+    }
+
+    @Test
+    fun deserializeAction_pauseFromV26_preservesRandomRange() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(700L),
+                "pauseRandomMaxDuration" to JsonPrimitive(1800L),
+            ),
+        )
+
+        val result = deserializeActionForVersion(26, json)!!
+
+        assertEquals(ActionType.PAUSE, result.type)
+        assertEquals("RANDOM_RANGE", result.pauseMode)
+        assertNull(result.pauseDuration)
+        assertEquals(700L, result.pauseRandomMinDuration)
+        assertEquals(1800L, result.pauseRandomMaxDuration)
+    }
+
+    @Test
+    fun deserializeAction_pauseFromV26_rejectsInvalidRandomRange() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(1800L),
+                "pauseRandomMaxDuration" to JsonPrimitive(700L),
+            ),
+        )
+
+        assertNull(deserializeActionForVersion(26, json))
+    }
+
+    @Test
+    fun deserializeAction_legacyPauseWithoutMode_remainsFixed() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf("pauseDuration" to JsonPrimitive(333L)),
+        )
+
+        val result = deserializeActionForVersion(24, json)!!
+
+        assertEquals(ActionType.PAUSE, result.type)
+        assertNull(result.pauseMode)
+        assertEquals(333L, result.pauseDuration)
+        assertNull(result.pauseRandomMinDuration)
+        assertNull(result.pauseRandomMaxDuration)
+    }
+
+    @Test
+    fun deserializeAction_pauseWithFixedMode_preservesDuration() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("FIXED"),
+                "pauseDuration" to JsonPrimitive(444L),
+            ),
+        )
+
+        val result = deserializeActionForVersion(26, json)!!
+
+        assertEquals("FIXED", result.pauseMode)
+        assertEquals(444L, result.pauseDuration)
+    }
+
+    @Test
+    fun deserializeAction_randomMovementFromV27Compat_preservesAreaDurationAndOptionalEndpoint() {
+        val compatDeserializer = object : CompatDeserializer() {}
+        val withEndpoint = createActionJson(
+            ActionType.RANDOM_MOVEMENT,
+            randomMovementFields(endX = 500, endY = 200),
+        )
+        val withoutEndpoint = createActionJson(
+            ActionType.RANDOM_MOVEMENT,
+            randomMovementFields(),
+        )
+
+        val resultWithEndpoint = compatDeserializer.deserializeAction(withEndpoint, emptyList(), 1)!!
+        val resultWithoutEndpoint = compatDeserializer.deserializeAction(withoutEndpoint, emptyList(), 1)!!
+
+        assertEquals(ActionType.RANDOM_MOVEMENT, resultWithEndpoint.type)
+        assertEquals(1L, resultWithEndpoint.id)
+        assertEquals(2L, resultWithEndpoint.eventId)
+        assertEquals("compat action", resultWithEndpoint.name)
+        assertEquals(3, resultWithEndpoint.priority)
+        assertEquals(10, resultWithEndpoint.randomAreaLeft)
+        assertEquals(20, resultWithEndpoint.randomAreaTop)
+        assertEquals(40, resultWithEndpoint.randomAreaRight)
+        assertEquals(60, resultWithEndpoint.randomAreaBottom)
+        assertEquals(900L, resultWithEndpoint.randomAreaDuration)
+        assertEquals(500, resultWithEndpoint.randomAreaEndX)
+        assertEquals(200, resultWithEndpoint.randomAreaEndY)
+        assertEquals(900L, resultWithoutEndpoint.randomAreaDuration)
+        assertNull(resultWithoutEndpoint.randomAreaEndX)
+        assertNull(resultWithoutEndpoint.randomAreaEndY)
+    }
+
+    private fun deserializeActionForVersion(version: Int, json: JsonObject) =
+        (DeserializerFactory.create(version) as CompatDeserializer)
+            .deserializeAction(json, emptyList(), 1)
+
+    private fun createActionJson(type: ActionType, fields: Map<String, JsonPrimitive>): JsonObject =
+        JsonObject(
+            mapOf(
+                "id" to JsonPrimitive(1L),
+                "eventId" to JsonPrimitive(2L),
+                "name" to JsonPrimitive("compat action"),
+                "priority" to JsonPrimitive(3),
+                "type" to JsonPrimitive(type.name),
+            ) + fields
+        )
+
+    private fun randomMovementFields(endX: Int? = null, endY: Int? = null): Map<String, JsonPrimitive> =
+        buildMap {
+            put("randomAreaLeft", JsonPrimitive(10))
+            put("randomAreaTop", JsonPrimitive(20))
+            put("randomAreaRight", JsonPrimitive(40))
+            put("randomAreaBottom", JsonPrimitive(60))
+            put("randomAreaDuration", JsonPrimitive(900L))
+            endX?.let { put("randomAreaEndX", JsonPrimitive(it)) }
+            endY?.let { put("randomAreaEndY", JsonPrimitive(it)) }
+        }
 }

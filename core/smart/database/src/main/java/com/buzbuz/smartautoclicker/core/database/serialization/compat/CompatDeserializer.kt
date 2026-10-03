@@ -478,7 +478,7 @@ internal open class CompatDeserializer : Deserializer {
         when (deserializeActionType(jsonAction)) {
             ActionType.CLICK -> deserializeActionClick(jsonAction, eventConditions, conditionsOperator)
             ActionType.MULTI_TOUCH -> deserializeActionMultiTouch(jsonAction)
-            ActionType.RANDOM_MOVEMENT -> null
+            ActionType.RANDOM_MOVEMENT -> deserializeActionRandomMovement(jsonAction)
             ActionType.SWIPE -> deserializeActionSwipe(jsonAction)
             ActionType.PAUSE -> deserializeActionPause(jsonAction)
             ActionType.INTENT -> deserializeActionIntent(jsonAction)
@@ -578,16 +578,86 @@ internal open class CompatDeserializer : Deserializer {
     open fun deserializeActionMultiTouch(jsonMultiTouch: JsonObject): ActionEntity? {
         val id = jsonMultiTouch.getLong("id", true) ?: return null
         val eventId = jsonMultiTouch.getLong("eventId", true) ?: return null
-        val firstTouchFromX = jsonMultiTouch.getInt("firstTouchFromX", true) ?: return null
-        val firstTouchFromY = jsonMultiTouch.getInt("firstTouchFromY", true) ?: return null
-        val firstTouchToX = jsonMultiTouch.getInt("firstTouchToX", true) ?: return null
-        val firstTouchToY = jsonMultiTouch.getInt("firstTouchToY", true) ?: return null
+
+        val firstTouchMode = jsonMultiTouch.getString("firstTouchMode")
+        val firstTouchModeForValidation = firstTouchMode ?: "DRAG"
+        if (firstTouchModeForValidation != "PRESS" &&
+            firstTouchModeForValidation != "DRAG" &&
+            firstTouchModeForValidation != "RANDOM_AREA"
+        ) return null
         val firstTouchDuration = jsonMultiTouch.getLong("firstTouchDuration", true) ?: return null
-        val secondTouchFromX = jsonMultiTouch.getInt("secondTouchFromX", true) ?: return null
-        val secondTouchFromY = jsonMultiTouch.getInt("secondTouchFromY", true) ?: return null
-        val secondTouchToX = jsonMultiTouch.getInt("secondTouchToX", true) ?: return null
-        val secondTouchToY = jsonMultiTouch.getInt("secondTouchToY", true) ?: return null
+        val firstTouchFromX = jsonMultiTouch.getInt("firstTouchFromX")
+        val firstTouchFromY = jsonMultiTouch.getInt("firstTouchFromY")
+        val firstTouchToX = jsonMultiTouch.getInt("firstTouchToX")
+        val firstTouchToY = jsonMultiTouch.getInt("firstTouchToY")
+        val firstTouchArea = if (firstTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getRect(
+                "firstTouchAreaLeft", "firstTouchAreaTop",
+                "firstTouchAreaRight", "firstTouchAreaBottom",
+            )?.takeUnless { it.isEmpty } ?: return null
+        } else {
+            null
+        }
+        val firstTouchRandomEndX = if (firstTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getInt("firstTouchRandomEndX")
+        } else {
+            null
+        }
+        val firstTouchRandomEndY = if (firstTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getInt("firstTouchRandomEndY")
+        } else {
+            null
+        }
+        if ((firstTouchRandomEndX == null) != (firstTouchRandomEndY == null)) return null
+        when (firstTouchModeForValidation) {
+            "PRESS" -> if (firstTouchFromX == null || firstTouchFromY == null ||
+                ((firstTouchToX == null) != (firstTouchToY == null))
+            ) return null
+            "DRAG" -> if (firstTouchFromX == null || firstTouchFromY == null ||
+                firstTouchToX == null || firstTouchToY == null
+            ) return null
+            "RANDOM_AREA" -> Unit
+        }
+
+        val secondTouchMode = jsonMultiTouch.getString("secondTouchMode")
+        val secondTouchModeForValidation = secondTouchMode ?: "DRAG"
+        if (secondTouchModeForValidation != "PRESS" &&
+            secondTouchModeForValidation != "DRAG" &&
+            secondTouchModeForValidation != "RANDOM_AREA"
+        ) return null
         val secondTouchDuration = jsonMultiTouch.getLong("secondTouchDuration", true) ?: return null
+        val secondTouchFromX = jsonMultiTouch.getInt("secondTouchFromX")
+        val secondTouchFromY = jsonMultiTouch.getInt("secondTouchFromY")
+        val secondTouchToX = jsonMultiTouch.getInt("secondTouchToX")
+        val secondTouchToY = jsonMultiTouch.getInt("secondTouchToY")
+        val secondTouchArea = if (secondTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getRect(
+                "secondTouchAreaLeft", "secondTouchAreaTop",
+                "secondTouchAreaRight", "secondTouchAreaBottom",
+            )?.takeUnless { it.isEmpty } ?: return null
+        } else {
+            null
+        }
+        val secondTouchRandomEndX = if (secondTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getInt("secondTouchRandomEndX")
+        } else {
+            null
+        }
+        val secondTouchRandomEndY = if (secondTouchModeForValidation == "RANDOM_AREA") {
+            jsonMultiTouch.getInt("secondTouchRandomEndY")
+        } else {
+            null
+        }
+        if ((secondTouchRandomEndX == null) != (secondTouchRandomEndY == null)) return null
+        when (secondTouchModeForValidation) {
+            "PRESS" -> if (secondTouchFromX == null || secondTouchFromY == null ||
+                ((secondTouchToX == null) != (secondTouchToY == null))
+            ) return null
+            "DRAG" -> if (secondTouchFromX == null || secondTouchFromY == null ||
+                secondTouchToX == null || secondTouchToY == null
+            ) return null
+            "RANDOM_AREA" -> Unit
+        }
 
         return ActionEntity(
             id = id,
@@ -600,18 +670,70 @@ internal open class CompatDeserializer : Deserializer {
             firstTouchToX = firstTouchToX,
             firstTouchToY = firstTouchToY,
             firstTouchDuration = firstTouchDuration,
+            firstTouchMode = firstTouchMode,
+            firstTouchAreaLeft = firstTouchArea?.left,
+            firstTouchAreaTop = firstTouchArea?.top,
+            firstTouchAreaRight = firstTouchArea?.right,
+            firstTouchAreaBottom = firstTouchArea?.bottom,
+            firstTouchRandomEndX = firstTouchRandomEndX,
+            firstTouchRandomEndY = firstTouchRandomEndY,
             secondTouchFromX = secondTouchFromX,
             secondTouchFromY = secondTouchFromY,
             secondTouchToX = secondTouchToX,
             secondTouchToY = secondTouchToY,
             secondTouchDuration = secondTouchDuration,
+            secondTouchMode = secondTouchMode,
+            secondTouchAreaLeft = secondTouchArea?.left,
+            secondTouchAreaTop = secondTouchArea?.top,
+            secondTouchAreaRight = secondTouchArea?.right,
+            secondTouchAreaBottom = secondTouchArea?.bottom,
+            secondTouchRandomEndX = secondTouchRandomEndX,
+            secondTouchRandomEndY = secondTouchRandomEndY,
         )
     }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionRandomMovement(jsonRandomMovement: JsonObject): ActionEntity? {
+        val id = jsonRandomMovement.getLong("id", true) ?: return null
+        val eventId = jsonRandomMovement.getLong("eventId", true) ?: return null
+        val area = jsonRandomMovement.getRect(
+            "randomAreaLeft", "randomAreaTop", "randomAreaRight", "randomAreaBottom",
+        )?.takeUnless { it.isEmpty } ?: return null
+        val duration = jsonRandomMovement.getLong("randomAreaDuration", true)
+            ?.takeIf { it in DURATION_LOWER_BOUND..DURATION_GESTURE_UPPER_BOUND } ?: return null
+        val endX = jsonRandomMovement.getInt("randomAreaEndX")
+        val endY = jsonRandomMovement.getInt("randomAreaEndY")
+        if ((endX == null) != (endY == null)) return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonRandomMovement.getString("name") ?: "",
+            priority = jsonRandomMovement.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.RANDOM_MOVEMENT,
+            randomAreaLeft = area.left,
+            randomAreaTop = area.top,
+            randomAreaRight = area.right,
+            randomAreaBottom = area.bottom,
+            randomAreaDuration = duration,
+            randomAreaEndX = endX,
+            randomAreaEndY = endY,
+        )
+    }
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
     open fun deserializeActionPause(jsonPause: JsonObject): ActionEntity? {
         val id = jsonPause.getLong("id", true) ?: return null
         val eventId = jsonPause.getLong("eventId", true) ?: return null
+        val pauseMode = jsonPause.getString("pauseMode")
+        if (pauseMode != null && pauseMode != "FIXED" && pauseMode != "RANDOM_RANGE") return null
+        val pauseDuration = jsonPause.getLong("pauseDuration")?.coerceAtLeast(0) ?: DEFAULT_PAUSE_DURATION
+        val randomMinDuration = jsonPause.getLong("pauseRandomMinDuration")
+        val randomMaxDuration = jsonPause.getLong("pauseRandomMaxDuration")
+        if (pauseMode == "RANDOM_RANGE" &&
+            (randomMinDuration == null || randomMinDuration <= 0L ||
+                randomMaxDuration == null || randomMaxDuration <= 0L ||
+                randomMinDuration > randomMaxDuration)
+        ) return null
 
         return ActionEntity(
             id = id,
@@ -619,7 +741,10 @@ internal open class CompatDeserializer : Deserializer {
             name = jsonPause.getString("name") ?: "",
             priority = jsonPause.getInt("priority")?.coerceAtLeast(0) ?: 0,
             type = ActionType.PAUSE,
-            pauseDuration = jsonPause.getLong("pauseDuration")?.coerceAtLeast(0) ?: DEFAULT_PAUSE_DURATION,
+            pauseDuration = pauseDuration.takeIf { pauseMode != "RANDOM_RANGE" },
+            pauseMode = pauseMode,
+            pauseRandomMinDuration = randomMinDuration.takeIf { pauseMode == "RANDOM_RANGE" },
+            pauseRandomMaxDuration = randomMaxDuration.takeIf { pauseMode == "RANDOM_RANGE" },
         )
     }
 

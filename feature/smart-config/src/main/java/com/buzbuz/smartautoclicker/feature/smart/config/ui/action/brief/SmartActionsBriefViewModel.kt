@@ -127,19 +127,7 @@ class SmartActionsBriefViewModel @Inject constructor(
 
     val actionTypeChoices: StateFlow<List<ActionTypeChoice>> =
         combine(canCopyActions, isLegacyUiEnabled) { canCopy, legacyEnabled ->
-            buildList {
-                if (!legacyEnabled && canCopy) add(ActionTypeChoice.Copy)
-                add(ActionTypeChoice.Click)
-                add(ActionTypeChoice.Swipe)
-                add(ActionTypeChoice.MultiTouch)
-                add(ActionTypeChoice.RandomMovement)
-                add(ActionTypeChoice.SetText)
-                add(ActionTypeChoice.System)
-                add(ActionTypeChoice.ChangeCounter)
-                add(ActionTypeChoice.ToggleEvent)
-                add(ActionTypeChoice.Notification)
-                add(ActionTypeChoice.Intent)
-            }
+            buildActionTypeChoices(canCopy, legacyEnabled)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val isTutorialModeEnabled: Flow<Boolean> =
@@ -345,3 +333,19 @@ private data class BriefVisualizationState(
     val focusedIndex: Int,
     val gestureCaptureStarted: Boolean,
 )
+
+internal fun buildActionTypeChoices(canCopy: Boolean, legacyEnabled: Boolean): List<ActionTypeChoice> =
+    buildList {
+        if (!legacyEnabled && canCopy) add(ActionTypeChoice.Copy)
+        add(ActionTypeChoice.Click)
+        add(ActionTypeChoice.Swipe)
+        add(ActionTypeChoice.MultiTouch)
+        add(ActionTypeChoice.RandomMovement)
+        add(ActionTypeChoice.Pause)
+        add(ActionTypeChoice.SetText)
+        add(ActionTypeChoice.System)
+        add(ActionTypeChoice.ChangeCounter)
+        add(ActionTypeChoice.ToggleEvent)
+        add(ActionTypeChoice.Notification)
+        add(ActionTypeChoice.Intent)
+    }
