@@ -2,6 +2,7 @@ package com.buzbuz.smartautoclicker.core.domain.model.action.mapper
 
 import android.content.ComponentName
 import android.graphics.Point
+import android.graphics.Rect
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import com.buzbuz.smartautoclicker.core.database.entity.ChangeCounterOperationType
@@ -22,6 +23,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
 
@@ -62,11 +64,15 @@ private fun CompleteActionEntity.toDomainMultiTouch(cleanIds: Boolean = false) =
         from = getPositionIfValid(action.firstTouchFromX, action.firstTouchFromY),
         to = getPositionIfValid(action.firstTouchToX, action.firstTouchToY),
         durationMs = action.firstTouchDuration,
+        mode = action.firstTouchMode?.let { runCatching { TouchMode.valueOf(it) }.getOrNull() } ?: TouchMode.DRAG,
+        area = getRectIfValid(action.firstTouchAreaLeft, action.firstTouchAreaTop, action.firstTouchAreaRight, action.firstTouchAreaBottom),
     ),
     secondTouch = TouchStroke(
         from = getPositionIfValid(action.secondTouchFromX, action.secondTouchFromY),
         to = getPositionIfValid(action.secondTouchToX, action.secondTouchToY),
         durationMs = action.secondTouchDuration,
+        mode = action.secondTouchMode?.let { runCatching { TouchMode.valueOf(it) }.getOrNull() } ?: TouchMode.DRAG,
+        area = getRectIfValid(action.secondTouchAreaLeft, action.secondTouchAreaTop, action.secondTouchAreaRight, action.secondTouchAreaBottom),
     ),
 )
 
@@ -169,3 +175,5 @@ private fun String?.toComponentName(): ComponentName? = this?.let {
 
 private fun getPositionIfValid(x: Int?, y: Int?): Point? =
     if (x != null && y != null) Point(x, y) else null
+private fun getRectIfValid(left: Int?, top: Int?, right: Int?, bottom: Int?): Rect? =
+    if (left != null && top != null && right != null && bottom != null) Rect(left, top, right, bottom) else null

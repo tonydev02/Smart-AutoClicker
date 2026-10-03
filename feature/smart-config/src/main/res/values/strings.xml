@@ -15,7 +15,13 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <resources>
+    <string-array name="multi_touch_modes">
+        <item>Press</item>
+        <item>Drag</item>
+        <item>Random area</item>
+    </string-array>
 
+    <string name="field_multi_touch_area_title">Touch %1$d area</string>
     <!-- Generic =================================================================================================== -->
     <!-- Those values are shared between several dialogs due to their generic meaning, such as name or formatting -->
 

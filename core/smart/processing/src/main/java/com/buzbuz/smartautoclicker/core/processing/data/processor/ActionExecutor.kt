@@ -42,6 +42,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
@@ -76,6 +77,7 @@ internal class ActionExecutor(
     private val random: Random? =
         if (randomize) Random(System.currentTimeMillis()) else null
 
+    private val randomAreaRandom: Random = Random(System.nanoTime())
     private val unblockGestureScheduler: UnblockGestureScheduler? =
         if (unblockWorkaroundEnabled) UnblockGestureScheduler()
         else null
@@ -178,12 +180,12 @@ internal class ActionExecutor(
     private suspend fun executeMultiTouch(action: MultiTouch) {
         val first = action.firstTouch
         val second = action.secondTouch
-        if (first.from == null || first.to == null || second.from == null || second.to == null) return
-        val firstDuration = first.durationMs ?: return
-        val secondDuration = second.durationMs ?: return
+        if (!first.isComplete() || !second.isComplete()) return
+        val firstDuration = first.durationMs!!
+        val secondDuration = second.durationMs!!
         val gesture = GestureDescription.Builder()
-            .addRandomizedStroke(first.toPath(), firstDuration, startTime = 0L, random = random)
-            .addRandomizedStroke(second.toPath(), secondDuration, startTime = 0L, random = random)
+            .addRandomizedStroke(first.toPath(randomAreaRandom), firstDuration, startTime = 0L, random = random)
+            .addRandomizedStroke(second.toPath(randomAreaRandom), secondDuration, startTime = 0L, random = random)
             .build()
 
         withContext(Dispatchers.Main) {
@@ -191,11 +193,11 @@ internal class ActionExecutor(
         }
     }
 
-    private fun TouchStroke.toPath(): Path =
-        Path().apply {
-            if (from == to) moveTo(from!!, random)
-            else line(from, to, random)
-        }
+    private fun TouchStroke.toPath(areaRandom: Random): Path = when (mode) {
+        TouchMode.PRESS -> Path().apply { moveTo(from!!, null) }
+        TouchMode.DRAG -> Path().apply { line(from, to, random) }
+        TouchMode.RANDOM_AREA -> generateRandomAreaPath(area!!, durationMs!!, areaRandom)
+    }
 
     /**
      * Execute the provided pause.

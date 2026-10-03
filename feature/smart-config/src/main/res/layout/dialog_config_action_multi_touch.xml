@@ -47,6 +47,10 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="@dimen/margin_vertical_default"
                         android:text="@string/field_multi_touch_first_title" />
+                    <Spinner
+                        android:id="@+id/field_first_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
 
                     <include layout="@layout/include_field_text_input"
                         android:id="@+id/field_first_duration"
@@ -81,6 +85,10 @@
                         android:layout_marginTop="@dimen/margin_vertical_default"
                         android:text="@string/field_multi_touch_second_title" />
 
+                    <Spinner
+                        android:id="@+id/field_second_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
                     <include layout="@layout/include_field_text_input"
                         android:id="@+id/field_second_duration"
                         android:layout_width="match_parent"

@@ -18,6 +18,7 @@ package com.buzbuz.smartautoclicker.core.domain.model.action
 
 import android.os.Build
 import android.graphics.Point
+import android.graphics.Rect
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.buzbuz.smartautoclicker.core.database.entity.CompleteActionEntity
@@ -109,7 +110,76 @@ class ActionMapperTests {
         assertEquals(action, action.deepCopy())
         assertEquals(9L, action.copyBase(id = 9L.asIdentifier()).id.databaseId)
     }
+    @Test
+    fun multiTouch_roundTripsEveryModeAndCopiesMutableGeometry() {
+        val modes = listOf(
+            TouchStroke(from = Point(2, 3), durationMs = 20L, mode = TouchMode.PRESS),
+            TouchStroke(from = Point(1, 2), to = Point(30, 40), durationMs = 300L, mode = TouchMode.DRAG),
+            TouchStroke(durationMs = 900L, mode = TouchMode.RANDOM_AREA, area = Rect(5, 6, 80, 90)),
+        )
+        modes.forEach { first ->
+            val action = MultiTouch(
+                id = 17L.asIdentifier(),
+                eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+                name = "Mode ${first.mode}",
+                priority = 3,
+                firstTouch = first,
+                secondTouch = first.deepCopy(),
+            )
+            assertTrue(action.isComplete())
+            assertEquals(action, CompleteActionEntity(action.toEntity(), emptyList(), emptyList()).toDomain())
+            val copy = action.deepCopy()
+            if (first.from != null) assertNotSame(first.from, copy.firstTouch.from)
+            if (first.area != null) assertNotSame(first.area, copy.firstTouch.area)
+            assertEquals(action.hashCodeNoIds(), action.copy(id = 3L.asIdentifier()).hashCodeNoIds())
+            assertEquals(9L, action.copyBase(id = 9L.asIdentifier()).id.databaseId)
+        }
+    }
+    @Test
+    fun multiTouch_roundTripsIndependentTouchModes() {
+        val press = TouchStroke(from = Point(1, 1), durationMs = 10L, mode = TouchMode.PRESS)
+        val drag = TouchStroke(from = Point(2, 3), to = Point(8, 9), durationMs = 40L, mode = TouchMode.DRAG)
+        val area = TouchStroke(durationMs = 50L, mode = TouchMode.RANDOM_AREA, area = Rect(0, 0, 20, 30))
+        listOf(press to drag, area to press, area to area).forEach { (first, second) ->
+            val action = MultiTouch(
+                id = 17L.asIdentifier(),
+                eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+                name = "Independent modes",
+                priority = 0,
+                firstTouch = first,
+                secondTouch = second,
+            )
+            assertEquals(action, CompleteActionEntity(action.toEntity(), emptyList(), emptyList()).toDomain())
+        }
+    }
 
+    @Test
+    fun multiTouch_rejectsModeSpecificMissingAndInvalidFields() {
+        assertFalse(TouchStroke(durationMs = 10L, mode = TouchMode.PRESS).isComplete())
+        assertFalse(TouchStroke(from = Point(), durationMs = 0L, mode = TouchMode.PRESS).isComplete())
+        assertFalse(TouchStroke(from = Point(), durationMs = 10L, mode = TouchMode.DRAG).isComplete())
+        assertFalse(TouchStroke(to = Point(), durationMs = 10L, mode = TouchMode.DRAG).isComplete())
+        assertFalse(TouchStroke(durationMs = 10L, mode = TouchMode.RANDOM_AREA).isComplete())
+        assertFalse(TouchStroke(durationMs = 10L, mode = TouchMode.RANDOM_AREA, area = Rect(0, 0, 0, 10)).isComplete())
+    }
+
+    @Test
+    fun multiTouch_legacyEntityWithoutModeIsInterpretedAsDrag() {
+        val drag = TouchStroke(Point(1, 2), Point(3, 4), 200L)
+        val action = MultiTouch(
+            id = 17L.asIdentifier(),
+            eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+            name = "Legacy",
+            priority = 0,
+            firstTouch = drag,
+            secondTouch = drag,
+        )
+        val legacyEntity = action.toEntity().copy(firstTouchMode = null, secondTouchMode = null)
+        val restored = CompleteActionEntity(legacyEntity, emptyList(), emptyList()).toDomain() as MultiTouch
+        assertEquals(TouchMode.DRAG, restored.firstTouch.mode)
+        assertEquals(TouchMode.DRAG, restored.secondTouch.mode)
+        assertTrue(restored.isComplete())
+    }
     @Test
     fun pause_toEntity() {
         assertEquals(

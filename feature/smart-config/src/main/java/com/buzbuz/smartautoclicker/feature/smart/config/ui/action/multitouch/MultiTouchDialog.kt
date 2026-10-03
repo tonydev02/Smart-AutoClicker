@@ -21,6 +21,8 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
 import androidx.core.graphics.toPoint
 import androidx.core.graphics.toPointF
 import androidx.lifecycle.Lifecycle
@@ -41,6 +43,8 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setText
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
 import com.buzbuz.smartautoclicker.core.ui.utils.MinMaxInputFilter
 import com.buzbuz.smartautoclicker.core.ui.views.itembrief.renderers.SwipeDescription
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
+import com.buzbuz.smartautoclicker.core.ui.views.itembrief.renderers.ClickDescription
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.DialogConfigActionMultiTouchBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.di.ScenarioConfigViewModelsEntryPoint
@@ -86,12 +90,14 @@ class MultiTouchDialog(
             setupDurationField(fieldSecondDuration, false)
             fieldFirstPositions.apply {
                 setTitle(context.getString(R.string.field_multi_touch_positions_title, 1))
-                setOnClickListener { debounceUserInteraction { showPositionSelector(true) } }
+                setOnClickListener { debounceUserInteraction { showTouchSelector(true) } }
             }
             fieldSecondPositions.apply {
                 setTitle(context.getString(R.string.field_multi_touch_positions_title, 2))
-                setOnClickListener { debounceUserInteraction { showPositionSelector(false) } }
+                setOnClickListener { debounceUserInteraction { showTouchSelector(false) } }
             }
+            setupModeSelector(fieldFirstMode, true)
+            setupModeSelector(fieldSecondMode, false)
         }
         hideSoftInputOnFocusLoss(viewBinding.fieldName.textField)
         hideSoftInputOnFocusLoss(viewBinding.fieldFirstDuration.textField)
@@ -129,6 +135,19 @@ class MultiTouchDialog(
         }
     }
 
+    private fun setupModeSelector(spinner: android.widget.Spinner, firstTouch: Boolean) {
+        spinner.adapter = ArrayAdapter.createFromResource(context, R.array.multi_touch_modes, android.R.layout.simple_spinner_item).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val mode = TouchMode.values().getOrNull(position) ?: return
+                val current = viewModel.getEditedAction()?.let { if (firstTouch) it.firstTouch.mode else it.secondTouch.mode }
+                if (current != mode) viewModel.setMode(firstTouch, mode)
+            }
+        }
+    }
     private fun setupDurationField(field: com.buzbuz.smartautoclicker.core.ui.databinding.IncludeFieldTextInputBinding, firstTouch: Boolean) {
         field.apply {
             textField.filters = arrayOf(MinMaxInputFilter(1, GESTURE_DURATION_MAX_VALUE.toInt()))
@@ -145,31 +164,64 @@ class MultiTouchDialog(
             layoutTopBar.setButtonEnabledState(DialogNavigationButton.SAVE, state.canBeSaved)
             fieldName.setText(state.name)
             fieldName.setError(state.nameError)
+            fieldFirstMode.setSelection(state.firstMode)
+            fieldSecondMode.setSelection(state.secondMode)
             fieldFirstDuration.setText(state.firstDuration, InputType.TYPE_CLASS_NUMBER)
             fieldFirstDuration.setError(state.firstDurationError)
+            fieldFirstPositions.setTitle(
+                if (state.firstAreaMode) context.getString(R.string.field_multi_touch_area_title, 1)
+                else context.getString(R.string.field_multi_touch_positions_title, 1),
+            )
             fieldFirstPositions.setDescription(state.firstPositionsDescription)
             fieldFirstPositions.setError(state.firstPositionsError)
             fieldSecondDuration.setText(state.secondDuration, InputType.TYPE_CLASS_NUMBER)
             fieldSecondDuration.setError(state.secondDurationError)
+            fieldSecondPositions.setTitle(
+                if (state.secondAreaMode) context.getString(R.string.field_multi_touch_area_title, 2)
+                else context.getString(R.string.field_multi_touch_positions_title, 2),
+            )
             fieldSecondPositions.setDescription(state.secondPositionsDescription)
             fieldSecondPositions.setError(state.secondPositionsError)
         }
     }
 
+    private fun showTouchSelector(firstTouch: Boolean) {
+        val stroke = viewModel.getEditedAction()?.let { if (firstTouch) it.firstTouch else it.secondTouch } ?: return
+        if (stroke.mode == TouchMode.RANDOM_AREA) {
+            overlayManager.navigateTo(
+                context = context,
+                newOverlay = MultiTouchAreaSelectorMenu(stroke.area) { viewModel.setArea(firstTouch, it) },
+                hideCurrent = true,
+            )
+        } else {
+            showPositionSelector(firstTouch)
+        }
+    }
     private fun showPositionSelector(firstTouch: Boolean) {
         val stroke = viewModel.getEditedAction()?.let { if (firstTouch) it.firstTouch else it.secondTouch } ?: return
+        val description = if (stroke.mode == TouchMode.PRESS) {
+            ClickDescription(position = stroke.from?.toPointF(), pressDurationMs = stroke.durationMs ?: 1L)
+        } else {
+            SwipeDescription(
+                from = stroke.from?.toPointF(),
+                to = stroke.to?.toPointF(),
+                swipeDurationMs = stroke.durationMs ?: 250L,
+            )
+        }
         overlayManager.navigateTo(
             context = context,
             newOverlay = PositionSelectorMenu(
                 tutorialMonitoringTag = MonitoredOverlayType.MULTI_TOUCH_POSITION.name,
-                itemBriefDescription = SwipeDescription(
-                    from = stroke.from?.toPointF(),
-                    to = stroke.to?.toPointF(),
-                    swipeDurationMs = stroke.durationMs ?: 250L,
-                ),
-                onConfirm = { description ->
-                    (description as SwipeDescription).let { selected ->
-                        viewModel.setPositions(firstTouch, selected.from!!.toPoint(), selected.to!!.toPoint())
+                itemBriefDescription = description,
+                onConfirm = { selected ->
+                    if (stroke.mode == TouchMode.PRESS) {
+                        (selected as ClickDescription).position?.let { point ->
+                            viewModel.setPositions(firstTouch, point.toPoint(), point.toPoint())
+                        }
+                    } else {
+                        (selected as SwipeDescription).let { swipe ->
+                            viewModel.setPositions(firstTouch, swipe.from!!.toPoint(), swipe.to!!.toPoint())
+                        }
                     }
                 },
             ),

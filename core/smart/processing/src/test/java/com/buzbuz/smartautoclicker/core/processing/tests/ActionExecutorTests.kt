@@ -34,6 +34,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ActionExecutor
@@ -252,6 +253,47 @@ class ActionExecutorTests {
         assertEquals(0L, gesture.getStroke(1).startTime)
         assertEquals(25L, gesture.getStroke(0).duration)
         assertEquals(50L, gesture.getStroke(1).duration)
+    }
+    @Test
+    fun execute_multiTouchModeCombinations_stillDispatchExactlyOneTwoStrokeGesture() = runTest {
+        val combinations = listOf(
+            TouchMode.PRESS to TouchMode.PRESS,
+            TouchMode.PRESS to TouchMode.DRAG,
+            TouchMode.DRAG to TouchMode.DRAG,
+            TouchMode.PRESS to TouchMode.RANDOM_AREA,
+            TouchMode.DRAG to TouchMode.RANDOM_AREA,
+            TouchMode.RANDOM_AREA to TouchMode.RANDOM_AREA,
+        )
+        val captor = argumentCaptor<GestureDescription>()
+        combinations.forEachIndexed { index, (firstMode, secondMode) ->
+            fun stroke(mode: TouchMode, start: Point, end: Point, duration: Long) = when (mode) {
+                TouchMode.PRESS -> TouchStroke(from = start, durationMs = duration, mode = mode)
+                TouchMode.DRAG -> TouchStroke(from = start, to = end, durationMs = duration, mode = mode)
+                TouchMode.RANDOM_AREA -> TouchStroke(durationMs = duration, mode = mode, area = Rect(0, 0, 120, 100))
+            }
+            val first = stroke(firstMode, Point(1, 2), Point(30, 40), 25L)
+            val second = stroke(secondMode, Point(50, 60), Point(70, 80), 50L)
+            val action = MultiTouch(
+                id = Identifier(databaseId = 10L + index),
+                eventId = TEST_EVENT_ID,
+                name = TEST_NAME,
+                priority = 0,
+                firstTouch = first,
+                secondTouch = second,
+            )
+            actionExecutor.executeActions(
+                event = getNewDefaultEvent(actions = listOf(action)),
+                results = ConditionsResults(),
+            )
+        }
+        verify(mockAndroidExecutor, times(combinations.size)).dispatchGesture(captor.capture())
+        captor.allValues.forEachIndexed { index, gesture ->
+            assertEquals(2, gesture.strokeCount)
+            assertEquals(0L, gesture.getStroke(0).startTime)
+            assertEquals(0L, gesture.getStroke(1).startTime)
+            assertEquals(25L, gesture.getStroke(0).duration)
+            assertEquals(50L, gesture.getStroke(1).duration)
+        }
     }
 
     @Test

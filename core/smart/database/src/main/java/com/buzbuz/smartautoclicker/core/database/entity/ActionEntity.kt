@@ -173,6 +173,16 @@ data class ActionEntity(
     @ColumnInfo(name = "second_touch_to_x") val secondTouchToX: Int? = null,
     @ColumnInfo(name = "second_touch_to_y") val secondTouchToY: Int? = null,
     @ColumnInfo(name = "second_touch_duration") val secondTouchDuration: Long? = null,
+    @ColumnInfo(name = "first_touch_mode") val firstTouchMode: String? = null,
+    @ColumnInfo(name = "first_touch_area_left") val firstTouchAreaLeft: Int? = null,
+    @ColumnInfo(name = "first_touch_area_top") val firstTouchAreaTop: Int? = null,
+    @ColumnInfo(name = "first_touch_area_right") val firstTouchAreaRight: Int? = null,
+    @ColumnInfo(name = "first_touch_area_bottom") val firstTouchAreaBottom: Int? = null,
+    @ColumnInfo(name = "second_touch_mode") val secondTouchMode: String? = null,
+    @ColumnInfo(name = "second_touch_area_left") val secondTouchAreaLeft: Int? = null,
+    @ColumnInfo(name = "second_touch_area_top") val secondTouchAreaTop: Int? = null,
+    @ColumnInfo(name = "second_touch_area_right") val secondTouchAreaRight: Int? = null,
+    @ColumnInfo(name = "second_touch_area_bottom") val secondTouchAreaBottom: Int? = null,
 ) : EntityWithId
 
 /**

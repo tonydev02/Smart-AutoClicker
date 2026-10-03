@@ -327,8 +327,8 @@ class EditedItemsBuilder internal constructor(
             eventId = getEditedEventIdOrThrow(),
             name = context.getString(com.buzbuz.smartautoclicker.feature.smart.config.R.string.item_multi_touch_title),
             priority = 0,
-            firstTouch = TouchStroke(null, null, 250L),
-            secondTouch = TouchStroke(null, null, 250L),
+            firstTouch = TouchStroke(from = null, to = null, durationMs = 250L),
+            secondTouch = TouchStroke(from = null, to = null, durationMs = 250L),
         )
 
     fun createNewPause(context: Context): Pause =

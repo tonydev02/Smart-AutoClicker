@@ -17,6 +17,7 @@
 package com.buzbuz.smartautoclicker.core.domain.model.action
 
 import android.graphics.Point
+import android.graphics.Rect
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.common.actions.GESTURE_DURATION_MAX_VALUE
 
@@ -43,17 +44,32 @@ data class MultiTouch(
     )
 }
 
-/** The start/end coordinates and duration of one stroke in a [MultiTouch] action. */
+enum class TouchMode {
+    PRESS,
+    DRAG,
+    RANDOM_AREA,
+}
+
+/** Configuration for one finger in a [MultiTouch] action. */
 data class TouchStroke(
-    val from: Point?,
-    val to: Point?,
+    val from: Point? = null,
+    val to: Point? = null,
     val durationMs: Long?,
+    val mode: TouchMode = TouchMode.DRAG,
+    val area: Rect? = null,
 ) {
-    fun isComplete(): Boolean =
-        from != null && to != null && durationMs != null && durationMs in 1..GESTURE_DURATION_MAX_VALUE
+    fun isComplete(): Boolean {
+        if (durationMs == null || durationMs !in 1..GESTURE_DURATION_MAX_VALUE) return false
+        return when (mode) {
+            TouchMode.PRESS -> from != null
+            TouchMode.DRAG -> from != null && to != null
+            TouchMode.RANDOM_AREA -> area?.isEmpty == false
+        }
+    }
 
     fun deepCopy(): TouchStroke = copy(
         from = from?.let(::Point),
         to = to?.let(::Point),
+        area = area?.let(::Rect),
     )
 }

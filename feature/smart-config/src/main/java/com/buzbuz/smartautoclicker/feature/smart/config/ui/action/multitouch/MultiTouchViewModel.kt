@@ -17,12 +17,14 @@
 package com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch
 
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.Point
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.buzbuz.smartautoclicker.core.common.actions.GESTURE_DURATION_MAX_VALUE
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -57,14 +59,18 @@ class MultiTouchViewModel @Inject constructor(
             canBeSaved = actionState.canBeSaved,
             name = action.name,
             nameError = action.name.isNullOrEmpty(),
+            firstMode = action.firstTouch.mode.ordinal,
             firstDuration = action.firstTouch.durationMs?.toString(),
             firstDurationError = !action.firstTouch.hasValidDuration(),
             firstPositionsDescription = action.firstTouch.positionsDescription(),
-            firstPositionsError = !action.firstTouch.hasPositions(),
+            firstPositionsError = !action.firstTouch.hasSelection(),
+            firstAreaMode = action.firstTouch.mode == TouchMode.RANDOM_AREA,
+            secondMode = action.secondTouch.mode.ordinal,
             secondDuration = action.secondTouch.durationMs?.toString(),
             secondDurationError = !action.secondTouch.hasValidDuration(),
             secondPositionsDescription = action.secondTouch.positionsDescription(),
-            secondPositionsError = !action.secondTouch.hasPositions(),
+            secondPositionsError = !action.secondTouch.hasSelection(),
+            secondAreaMode = action.secondTouch.mode == TouchMode.RANDOM_AREA,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -80,26 +86,51 @@ class MultiTouchViewModel @Inject constructor(
         if (firstTouch) action.copy(firstTouch = updated) else action.copy(secondTouch = updated)
     }
 
-    fun setPositions(firstTouch: Boolean, from: Point, to: Point) = updateAction { action ->
-        val stroke = if (firstTouch) action.firstTouch else action.secondTouch
-        val updated = stroke.copy(from = from, to = to)
-        if (firstTouch) action.copy(firstTouch = updated) else action.copy(secondTouch = updated)
+    fun setPositions(firstTouch: Boolean, from: Point, to: Point) = updateStroke(firstTouch) { stroke ->
+        if (stroke.mode == TouchMode.PRESS) stroke.copy(from = from, to = null)
+        else stroke.copy(from = from, to = to)
     }
 
+    fun setArea(firstTouch: Boolean, area: Rect) = updateStroke(firstTouch) { it.copy(area = Rect(area)) }
+
+    fun setMode(firstTouch: Boolean, mode: TouchMode) = updateStroke(firstTouch) { stroke ->
+        when (mode) {
+            TouchMode.PRESS -> stroke.copy(mode = mode, to = null, area = null)
+            TouchMode.DRAG -> stroke.copy(mode = mode, area = null)
+            TouchMode.RANDOM_AREA -> stroke.copy(mode = mode, from = null, to = null)
+        }
+    }
+
+    private fun updateStroke(firstTouch: Boolean, update: (TouchStroke) -> TouchStroke) =
+        updateAction { action ->
+            if (firstTouch) action.copy(firstTouch = update(action.firstTouch))
+            else action.copy(secondTouch = update(action.secondTouch))
+        }
     private fun updateAction(update: (MultiTouch) -> MultiTouch) {
         editionRepository.editionState.getEditedAction<MultiTouch>()?.let {
             editionRepository.updateEditedAction(update(it))
         }
     }
 
-    private fun TouchStroke.hasPositions(): Boolean = from != null && to != null
+    private fun TouchStroke.hasSelection(): Boolean = when (mode) {
+        TouchMode.PRESS -> from != null
+        TouchMode.DRAG -> from != null && to != null
+        TouchMode.RANDOM_AREA -> area?.isEmpty == false
+    }
 
     private fun TouchStroke.hasValidDuration(): Boolean =
         durationMs != null && durationMs in 1..GESTURE_DURATION_MAX_VALUE
 
-    private fun TouchStroke.positionsDescription(): String =
-        if (hasPositions()) context.getString(
-            R.string.field_multi_touch_positions_desc,
-            from!!.x, from!!.y, to!!.x, to!!.y,
-        ) else context.getString(R.string.generic_select_the_position)
+    private fun TouchStroke.positionsDescription(): String = when (mode) {
+        TouchMode.PRESS -> from?.let { context.getString(R.string.field_multi_touch_positions_desc, it.x, it.y, it.x, it.y) }
+            ?: context.getString(R.string.generic_select_the_position)
+        TouchMode.DRAG -> {
+            val start = from
+            val end = to
+            if (start != null && end != null) context.getString(
+                R.string.field_multi_touch_positions_desc, start.x, start.y, end.x, end.y,
+            ) else context.getString(R.string.generic_select_the_position)
+        }
+        TouchMode.RANDOM_AREA -> area?.toString() ?: context.getString(R.string.generic_select_the_position)
+    }
 }
