@@ -42,6 +42,7 @@ internal class HttpUrlConnectionWebhookHttpClient : WebhookHttpClient {
                 connection.doOutput = true
                 connection.instanceFollowRedirects = false
                 connection.setFixedLengthStreamingMode(body.size)
+                connection.setRequestProperty("Content-Type", contentType)
                 connection.outputStream.use { output -> output.write(body) }
 
                 val statusCode = connection.responseCode
