@@ -102,6 +102,35 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <include layout="@layout/include_field_slider"
+                android:id="@+id/field_random_spread"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone"
+                app:layout_constraintTop_toBottomOf="@id/field_random_most_likely"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <TextView
+                android:id="@+id/label_random_spread_focused"
+                style="@style/TextAppearance.Material3.BodySmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_pause_spread_focused"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="@id/field_random_spread"
+                app:layout_constraintTop_toBottomOf="@id/field_random_spread" />
+
+            <TextView
+                android:id="@+id/label_random_spread_wide"
+                style="@style/TextAppearance.Material3.BodySmall"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_pause_spread_wide"
+                android:visibility="gone"
+                app:layout_constraintEnd_toEndOf="@id/field_random_spread"
+                app:layout_constraintTop_toBottomOf="@id/field_random_spread" />
+
             <include layout="@layout/include_input_field_dropdown"
                 android:id="@+id/time_unit_field"
                 android:layout_width="0dp"

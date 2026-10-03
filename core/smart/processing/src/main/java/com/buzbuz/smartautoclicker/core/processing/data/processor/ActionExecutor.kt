@@ -232,6 +232,7 @@ internal class ActionExecutor(
                 pause.randomMinDurationMs!!,
                 pause.randomMostLikelyDurationMs!!,
                 pause.randomMaxDurationMs!!,
+                pause.randomSpread!!,
                 pauseRangeRandom,
             )
         }

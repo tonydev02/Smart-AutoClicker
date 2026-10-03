@@ -390,6 +390,9 @@
     <string name="field_pause_minimum">Minimum</string>
     <string name="field_pause_maximum">Maximum</string>
     <string name="field_pause_most_likely">Most likely</string>
+    <string name="field_pause_spread">Spread</string>
+    <string name="field_pause_spread_focused">Focused</string>
+    <string name="field_pause_spread_wide">Wide</string>
     <string name="item_pause_random_range_details">Wait %1$s–%2$s · most likely %3$s</string>
     <string-array name="multi_touch_end_modes">
         <item>@string/field_multi_touch_end_anywhere</item>

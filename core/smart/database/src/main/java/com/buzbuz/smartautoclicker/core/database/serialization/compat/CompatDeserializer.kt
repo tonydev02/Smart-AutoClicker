@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.base.extensions.getString
 import com.buzbuz.smartautoclicker.core.base.extensions.getListOf
 import com.buzbuz.smartautoclicker.core.base.extensions.getRect
 import com.buzbuz.smartautoclicker.core.base.interfaces.containsId
+import com.buzbuz.smartautoclicker.core.common.actions.utils.isValidRandomPauseSpread
 import com.buzbuz.smartautoclicker.core.database.entity.ActionEntity
 import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import com.buzbuz.smartautoclicker.core.database.entity.ChangeCounterOperationType
@@ -730,11 +731,13 @@ internal open class CompatDeserializer : Deserializer {
         val randomMinDuration = jsonPause.getLong("pauseRandomMinDuration")
         val randomMaxDuration = jsonPause.getLong("pauseRandomMaxDuration")
         val randomMostLikelyDuration = jsonPause.getLong("pauseRandomMostLikelyDuration")
+        val randomSpread = jsonPause.getDouble("pauseRandomSpread")
         if (pauseMode == "RANDOM_RANGE" &&
             (randomMinDuration == null || randomMinDuration <= 0L ||
                 randomMaxDuration == null || randomMaxDuration <= 0L ||
                 randomMinDuration > randomMaxDuration ||
-                randomMostLikelyDuration?.let { it !in randomMinDuration..randomMaxDuration } == true)
+                randomMostLikelyDuration?.let { it !in randomMinDuration..randomMaxDuration } == true ||
+                randomSpread?.isValidRandomPauseSpread() == false)
         ) return null
 
         return ActionEntity(
@@ -748,6 +751,7 @@ internal open class CompatDeserializer : Deserializer {
             pauseRandomMinDuration = randomMinDuration.takeIf { pauseMode == "RANDOM_RANGE" },
             pauseRandomMaxDuration = randomMaxDuration.takeIf { pauseMode == "RANDOM_RANGE" },
             pauseRandomMostLikelyDuration = randomMostLikelyDuration.takeIf { pauseMode == "RANDOM_RANGE" },
+            pauseRandomSpread = randomSpread.takeIf { pauseMode == "RANDOM_RANGE" },
         )
     }
 

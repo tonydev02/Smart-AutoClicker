@@ -123,7 +123,7 @@ class DeserializerTests {
     }
 
     @Test
-    fun currentVersionRoundTripsRandomRangePausePeak() {
+    fun currentVersionRoundTripsRandomRangePauseSpread() {
         val rangeScenario = DEFAULT_COMPLETE_SCENARIO.copy(
             events = DEFAULT_COMPLETE_SCENARIO.events.map { event ->
                 event.copy(
@@ -138,6 +138,7 @@ class DeserializerTests {
                                 pauseMode = "RANDOM_RANGE",
                                 pauseRandomMinDuration = 700L,
                                 pauseRandomMostLikelyDuration = 1_200L,
+                                pauseRandomSpread = 0.60,
                                 pauseRandomMaxDuration = 1_800L,
                             ),
                             intentExtras = emptyList(),

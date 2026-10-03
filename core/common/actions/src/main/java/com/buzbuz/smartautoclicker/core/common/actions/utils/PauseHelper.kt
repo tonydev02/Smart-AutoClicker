@@ -21,3 +21,10 @@ import kotlin.random.Random
 
 fun Long.getPauseDurationMs(random: Random?): Long =
     random?.nextLongInOffset(this, RANDOMIZATION_DURATION_MAX_OFFSET_MS) ?: this
+
+const val RANDOM_PAUSE_SPREAD_DEFAULT = 0.60
+const val RANDOM_PAUSE_SPREAD_MIN = 0.15
+const val RANDOM_PAUSE_SPREAD_MAX = 1.25
+
+fun Double.isValidRandomPauseSpread(): Boolean =
+    isFinite() && this in RANDOM_PAUSE_SPREAD_MIN..RANDOM_PAUSE_SPREAD_MAX

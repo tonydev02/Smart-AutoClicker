@@ -67,56 +67,74 @@ class RandomAreaPathTests {
     }
 
     @Test
-    fun randomPauseDurationUsesTriangularDistributionAndHandlesLongExtremes() {
+    fun randomPauseDurationIsBoundedDeterministicAndHandlesLongExtremes() {
         val random = Random(55)
         repeat(2_000) {
-            val result = selectRandomPauseDuration(700L, 1_100L, 1_800L, random)
+            val result = selectRandomPauseDuration(700L, 1_100L, 1_800L, 0.60, random)
             assertTrue(result in 700L..1_800L)
         }
 
         assertEquals(
-            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, Random(it)) },
-            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, Random(it)) },
+            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, 0.60, Random(it)) },
+            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, 0.60, Random(it)) },
         )
         assertEquals(
             Long.MAX_VALUE,
-            selectRandomPauseDuration(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE, random),
+            selectRandomPauseDuration(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE, 0.60, random),
         )
         repeat(100) {
             assertTrue(
-                selectRandomPauseDuration(Long.MAX_VALUE - 20L, Long.MAX_VALUE - 10L, Long.MAX_VALUE, random) in
-                    (Long.MAX_VALUE - 20L)..Long.MAX_VALUE,
+                selectRandomPauseDuration(
+                    Long.MAX_VALUE - 20L,
+                    Long.MAX_VALUE - 10L,
+                    Long.MAX_VALUE,
+                    0.60,
+                    random,
+                ) in (Long.MAX_VALUE - 20L)..Long.MAX_VALUE,
             )
+            assertTrue(selectRandomPauseDuration(1L, 1L, 100L, 0.60, random) in 1L..100L)
+            assertTrue(selectRandomPauseDuration(1L, 100L, 100L, 0.60, random) in 1L..100L)
         }
-        repeat(100) {
-            assertTrue(selectRandomPauseDuration(1L, 1L, 100L, random) in 1L..100L)
-            assertTrue(selectRandomPauseDuration(1L, 100L, 100L, random) in 1L..100L)
-        }
-        assertEquals(7L, selectRandomPauseDuration(7L, 7L, 7L, random))
+        assertEquals(7L, selectRandomPauseDuration(7L, 7L, 7L, 0.60, random))
+        assertEquals(100L, selectRandomPauseDuration(1L, 100L, 100L, 0.60, AlwaysNearOneRandom))
 
         val variedSamples = (0 until 100).map {
-            selectRandomPauseDuration(1L, 50L, 100L, Random(it))
+            selectRandomPauseDuration(1L, 50L, 100L, 0.60, Random(it))
         }.toSet()
         assertTrue(variedSamples.size > 1)
     }
 
     @Test
-    fun randomPauseDurationHasTriangularMeanAndPeakDensity() {
-        val random = Random(42)
-        val sampleCount = 30_000
-        var total = 0.0
-        var nearModeCount = 0
-        var upperTailCount = 0
+    fun randomPauseDurationSpreadControlsTailWithoutChangingHardBounds() {
+        val focusedRandom = Random(42)
+        val wideRandom = Random(42)
+        val sampleCount = 20_000
+        var focusedTotal = 0.0
+        var wideTotal = 0.0
+        var focusedUpperTailCount = 0
+        var wideUpperTailCount = 0
         repeat(sampleCount) {
-            val sample = selectRandomPauseDuration(1L, 2_501L, 10_001L, random)
-            total += sample.toDouble()
-            if (sample in 2_001L..3_001L) nearModeCount++
-            if (sample in 8_001L..9_001L) upperTailCount++
+            val focused = selectRandomPauseDuration(2_000L, 5_000L, 30_000L, 0.25, focusedRandom)
+            val wide = selectRandomPauseDuration(2_000L, 5_000L, 30_000L, 0.90, wideRandom)
+            assertTrue(focused in 2_000L..30_000L)
+            assertTrue(wide in 2_000L..30_000L)
+            focusedTotal += focused
+            wideTotal += wide
+            if (focused > 12_000L) focusedUpperTailCount++
+            if (wide > 12_000L) wideUpperTailCount++
         }
 
-        val expectedMean = (1.0 + 2_501.0 + 10_001.0) / 3.0
-        assertTrue(kotlin.math.abs(total / sampleCount - expectedMean) < 100.0)
-        assertTrue(nearModeCount > upperTailCount * 3)
+        assertTrue(wideTotal / sampleCount > focusedTotal / sampleCount * 1.15)
+        assertTrue(wideUpperTailCount > focusedUpperTailCount + 500)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun randomPauseDurationRejectsSpreadBelowSupportedRange() {
+        selectRandomPauseDuration(1L, 5L, 10L, 0.149, Random(1))
+    }
+
+    private object AlwaysNearOneRandom : Random() {
+        override fun nextBits(bitCount: Int): Int = -1
     }
 
     @Test

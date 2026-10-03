@@ -4,30 +4,32 @@ import android.content.ComponentName
 import android.graphics.Point
 import android.graphics.Rect
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
+import com.buzbuz.smartautoclicker.core.common.actions.utils.RANDOM_PAUSE_SPREAD_DEFAULT
 import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import com.buzbuz.smartautoclicker.core.database.entity.ChangeCounterOperationType
 import com.buzbuz.smartautoclicker.core.database.entity.ClickPositionType
 import com.buzbuz.smartautoclicker.core.database.entity.CompleteActionEntity
 import com.buzbuz.smartautoclicker.core.database.entity.EventToggleType
 import com.buzbuz.smartautoclicker.core.database.entity.SystemActionType
-import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationValue
 import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
+import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
-import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
-import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
-import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
+import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationValue
+
 internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = when (action.type) {
     ActionType.CLICK -> toDomainClick(cleanIds)
     ActionType.MULTI_TOUCH -> toDomainMultiTouch(cleanIds)
@@ -113,6 +115,8 @@ private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false): Pause
         } else {
             null
         }
+    val randomSpread = action.pauseRandomSpread
+        ?: RANDOM_PAUSE_SPREAD_DEFAULT.takeIf { pauseMode == PauseMode.RANDOM_RANGE }
 
     return Pause(
         id = Identifier(id = action.id, asTemporary = cleanIds),
@@ -124,6 +128,7 @@ private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false): Pause
         randomMinDurationMs = minDuration,
         randomMaxDurationMs = maxDuration,
         randomMostLikelyDurationMs = mostLikelyDuration,
+        randomSpread = randomSpread,
     )
 }
 

@@ -114,6 +114,12 @@ class PauseDialog(
                 setValueLabelState(isEnabled = false)
                 setOnValueChangedFromUserListener { viewModel.setRandomMostLikelyPosition(it.toInt()) }
             }
+            fieldRandomSpread.apply {
+                setTitle(context.getString(R.string.field_pause_spread))
+                setSliderRange(0f, 1000f)
+                setValueLabelState(isEnabled = false)
+                setOnValueChangedFromUserListener { viewModel.setRandomSpreadPosition(it.toInt()) }
+            }
             pauseModeField.adapter = ArrayAdapter.createFromResource(
                 context, R.array.pause_modes, android.R.layout.simple_spinner_item,
             ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
@@ -167,6 +173,11 @@ class PauseDialog(
                 launch {
                     viewModel.randomDurationRangeEnabled.collect {
                         viewBinding.fieldRandomMostLikely.slider.isEnabled = it
+                    }
+                }
+                launch {
+                    viewModel.randomSpreadPosition.collect {
+                        viewBinding.fieldRandomSpread.setSliderValue(it.toFloat())
                     }
                 }
             }
@@ -225,6 +236,9 @@ class PauseDialog(
         viewBinding.editRandomMinDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
         viewBinding.editRandomMaxDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
         viewBinding.fieldRandomMostLikely.root.visibility = if (random) View.VISIBLE else View.GONE
+        viewBinding.fieldRandomSpread.root.visibility = if (random) View.VISIBLE else View.GONE
+        viewBinding.labelRandomSpreadFocused.visibility = if (random) View.VISIBLE else View.GONE
+        viewBinding.labelRandomSpreadWide.visibility = if (random) View.VISIBLE else View.GONE
     }
 
     private fun updateSaveButton(isValidCondition: Boolean) {

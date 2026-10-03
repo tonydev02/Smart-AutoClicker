@@ -335,6 +335,54 @@ class CompatDeserializerTests {
     }
 
     @Test
+    fun deserializeAction_pauseFromV28WithoutSpreadPreservesRangeAndLeavesSpreadNull() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(2_000L),
+                "pauseRandomMostLikelyDuration" to JsonPrimitive(5_000L),
+                "pauseRandomMaxDuration" to JsonPrimitive(30_000L),
+            ),
+        )
+
+        val result = deserializeActionForVersion(28, json)!!
+
+        assertEquals("RANDOM_RANGE", result.pauseMode)
+        assertEquals(2_000L, result.pauseRandomMinDuration)
+        assertEquals(5_000L, result.pauseRandomMostLikelyDuration)
+        assertEquals(30_000L, result.pauseRandomMaxDuration)
+        assertNull(result.pauseRandomSpread)
+    }
+
+    @Test
+    fun deserializeAction_pauseFromV28PreservesValidSpreadAndRejectsInvalidSpread() {
+        val validJson = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(2_000L),
+                "pauseRandomMostLikelyDuration" to JsonPrimitive(5_000L),
+                "pauseRandomMaxDuration" to JsonPrimitive(30_000L),
+                "pauseRandomSpread" to JsonPrimitive(0.85),
+            ),
+        )
+        val invalidJson = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(2_000L),
+                "pauseRandomMostLikelyDuration" to JsonPrimitive(5_000L),
+                "pauseRandomMaxDuration" to JsonPrimitive(30_000L),
+                "pauseRandomSpread" to JsonPrimitive(1.5),
+            ),
+        )
+
+        assertEquals(0.85, deserializeActionForVersion(28, validJson)!!.pauseRandomSpread!!, 0.0)
+        assertNull(deserializeActionForVersion(28, invalidJson))
+    }
+
+    @Test
     fun deserializeAction_pauseFromV26_rejectsInvalidRandomRange() {
         val json = createActionJson(
             ActionType.PAUSE,

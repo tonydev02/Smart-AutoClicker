@@ -27,10 +27,14 @@ import androidx.lifecycle.viewModelScope
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.TimeUnitDropDownItem
+import com.buzbuz.smartautoclicker.core.common.actions.utils.RANDOM_PAUSE_SPREAD_DEFAULT
+import com.buzbuz.smartautoclicker.core.common.actions.utils.RANDOM_PAUSE_SPREAD_MAX
+import com.buzbuz.smartautoclicker.core.common.actions.utils.RANDOM_PAUSE_SPREAD_MIN
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.findAppropriateTimeUnit
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.formatDuration
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.toDurationMs
 import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration as formatActualDuration
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import com.buzbuz.smartautoclicker.feature.smart.config.utils.getEventConfigPreferences
@@ -61,7 +65,7 @@ class PauseViewModel @Inject constructor(
     init {
         editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
             if (pause.pauseMode == PauseMode.RANDOM_RANGE) {
-                val normalized = normalizeRandomPeak(pause)
+                val normalized = normalizeRandomSpread(normalizeRandomPeak(pause))
                 if (normalized != pause) editionRepository.updateEditedAction(normalized)
             }
         }
@@ -127,6 +131,8 @@ class PauseViewModel @Inject constructor(
                 durationToPosition(it, pause.randomMinDurationMs, pause.randomMaxDurationMs)
             } ?: 0
         }
+    val randomSpreadPosition: Flow<Int> = configuredPause
+        .map { spreadToPosition(it.randomSpread) }
     val randomDurationRangeEnabled: Flow<Boolean> = configuredPause
         .map { pause ->
             val minimum = pause.randomMinDurationMs ?: return@map false
@@ -170,7 +176,11 @@ class PauseViewModel @Inject constructor(
             if (pause.pauseMode != mode) {
                 val updated = pause.copy(pauseMode = mode)
                 editionRepository.updateEditedAction(
-                    if (mode == PauseMode.RANDOM_RANGE) normalizeRandomPeak(updated) else updated,
+                    if (mode == PauseMode.RANDOM_RANGE) {
+                        normalizeRandomSpread(normalizeRandomPeak(updated))
+                    } else {
+                        updated
+                    },
                 )
             }
         }
@@ -187,6 +197,15 @@ class PauseViewModel @Inject constructor(
             val peak = positionToDuration(position, minimum, maximum)
             if (pause.randomMostLikelyDurationMs != peak) {
                 editionRepository.updateEditedAction(pause.copy(randomMostLikelyDurationMs = peak))
+            }
+        }
+    }
+
+    fun setRandomSpreadPosition(position: Int) {
+        val spread = positionToSpread(position)
+        editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
+            if (pause.pauseMode == PauseMode.RANDOM_RANGE && pause.randomSpread != spread) {
+                editionRepository.updateEditedAction(pause.copy(randomSpread = spread))
             }
         }
     }
@@ -223,6 +242,30 @@ internal fun normalizeRandomPeak(pause: Pause): Pause {
     return if (peak == pause.randomMostLikelyDurationMs) pause
     else pause.copy(randomMostLikelyDurationMs = peak)
 }
+
+internal fun normalizeRandomSpread(pause: Pause): Pause {
+    if (pause.pauseMode != PauseMode.RANDOM_RANGE || pause.randomSpread != null) return pause
+    return pause.copy(randomSpread = RANDOM_PAUSE_SPREAD_DEFAULT)
+}
+
+internal fun spreadToPosition(spread: Double?): Int {
+    val effectiveSpread = spread
+        ?.takeIf(Double::isFinite)
+        ?.coerceIn(RANDOM_PAUSE_SPREAD_MIN, RANDOM_PAUSE_SPREAD_MAX)
+        ?: RANDOM_PAUSE_SPREAD_DEFAULT
+    val normalized = (effectiveSpread - RANDOM_PAUSE_SPREAD_MIN) /
+        (RANDOM_PAUSE_SPREAD_MAX - RANDOM_PAUSE_SPREAD_MIN)
+    return (normalized * MAX_RANDOM_SPREAD_POSITION).roundToInt()
+}
+
+internal fun positionToSpread(position: Int): Double {
+    val normalized = position.coerceIn(0, MAX_RANDOM_SPREAD_POSITION).toDouble() /
+        MAX_RANDOM_SPREAD_POSITION
+    return RANDOM_PAUSE_SPREAD_MIN +
+        normalized * (RANDOM_PAUSE_SPREAD_MAX - RANDOM_PAUSE_SPREAD_MIN)
+}
+
+private const val MAX_RANDOM_SPREAD_POSITION = 1000
 
 internal fun durationToPosition(duration: Long, minimum: Long?, maximum: Long?): Int {
     if (minimum == null || maximum == null || minimum <= 0L || maximum <= minimum) return 0

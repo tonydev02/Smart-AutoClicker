@@ -179,6 +179,7 @@ class ActionMapperTests {
             randomMinDurationMs = 700L,
             randomMaxDurationMs = 1800L,
             randomMostLikelyDurationMs = 1250L,
+            randomSpread = 0.60,
         )
         assertTrue(pause.isComplete())
         assertEquals(pause, CompleteActionEntity(pause.toEntity(), emptyList(), emptyList()).toDomain())
@@ -193,6 +194,7 @@ class ActionMapperTests {
         )
         val restoredOldRange = oldRangeEntity.toDomain() as Pause
         assertEquals(1250L, restoredOldRange.randomMostLikelyDurationMs)
+        assertEquals(0.60, restoredOldRange.randomSpread!!, 0.0)
         assertTrue(restoredOldRange.isComplete())
 
         val legacy = ActionTestsData.getNewPauseEntity(eventId = 2L).copy(
@@ -209,6 +211,13 @@ class ActionMapperTests {
         assertFalse(pause.copy(randomMostLikelyDurationMs = null).isComplete())
         assertFalse(pause.copy(randomMostLikelyDurationMs = 699L).isComplete())
         assertFalse(pause.copy(randomMostLikelyDurationMs = 1801L).isComplete())
+        assertTrue(pause.copy(randomSpread = 0.15).isComplete())
+        assertTrue(pause.copy(randomSpread = 1.25).isComplete())
+        assertFalse(pause.copy(randomSpread = null).isComplete())
+        assertFalse(pause.copy(randomSpread = 0.149).isComplete())
+        assertFalse(pause.copy(randomSpread = 1.251).isComplete())
+        assertFalse(pause.copy(randomSpread = Double.NaN).isComplete())
+        assertFalse(pause.copy(randomSpread = Double.POSITIVE_INFINITY).isComplete())
         assertTrue(pause.copy(randomMinDurationMs = 700L, randomMaxDurationMs = 700L, randomMostLikelyDurationMs = 700L).isComplete())
 
         val fixed = pause.copy(
@@ -219,6 +228,7 @@ class ActionMapperTests {
         )
         assertTrue(fixed.isComplete())
         assertFalse(fixed.copy(pauseDuration = null).isComplete())
+        assertTrue(fixed.copy(randomSpread = Double.NaN).isComplete())
         assertFalse(fixed.copy(pauseDuration = 0L).isComplete())
         assertFalse(pause.copy(randomMinDurationMs = -1L).isComplete())
         assertFalse(pause.copy(randomMaxDurationMs = 0L).isComplete())

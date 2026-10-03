@@ -376,6 +376,7 @@ class ActionExecutorTests {
             randomMinDurationMs = 700L,
             randomMostLikelyDurationMs = 750L,
             randomMaxDurationMs = 800L,
+            randomSpread = 0.60,
         )
         for (randomize in listOf(false, true)) {
             val start = testScheduler.currentTime

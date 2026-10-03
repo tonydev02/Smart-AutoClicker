@@ -146,6 +146,7 @@ private fun Pause.toPauseEntity(): ActionEntity =
         pauseRandomMinDuration = randomMinDurationMs,
         pauseRandomMaxDuration = randomMaxDurationMs,
         pauseRandomMostLikelyDuration = randomMostLikelyDurationMs,
+        pauseRandomSpread = randomSpread,
     )
 
 private fun Intent.toIntentEntity(): ActionEntity =

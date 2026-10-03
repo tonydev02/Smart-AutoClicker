@@ -17,12 +17,13 @@
 package com.buzbuz.smartautoclicker.core.domain.model.action
 
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
+import com.buzbuz.smartautoclicker.core.common.actions.utils.isValidRandomPauseSpread
 
 /**
  * Pause action.
  *
- * [PauseMode.RANDOM_RANGE] selects a triangularly distributed duration between
- * [randomMinDurationMs] and [randomMaxDurationMs], peaking at [randomMostLikelyDurationMs].
+ * [PauseMode.RANDOM_RANGE] samples a bounded log-normal duration between [randomMinDurationMs] and
+ * [randomMaxDurationMs], with its mode at [randomMostLikelyDurationMs] and shape controlled by [randomSpread].
  */
 data class Pause(
     override val id: Identifier,
@@ -34,6 +35,7 @@ data class Pause(
     val randomMinDurationMs: Long? = null,
     val randomMaxDurationMs: Long? = null,
     val randomMostLikelyDurationMs: Long? = null,
+    val randomSpread: Double? = null,
 ) : Action() {
 
     override fun isComplete(): Boolean = super.isComplete() && when (pauseMode) {
@@ -42,16 +44,18 @@ data class Pause(
             val min = randomMinDurationMs
             val max = randomMaxDurationMs
             val mostLikely = randomMostLikelyDurationMs
+            val spread = randomSpread
             min != null && min > 0L &&
                 max != null && max >= min &&
-                mostLikely != null && mostLikely in min..max
+                mostLikely != null && mostLikely in min..max &&
+                spread != null && spread.isValidRandomPauseSpread()
         }
     }
 
     override fun hashCodeNoIds(): Int =
         name.hashCode() + pauseDuration.hashCode() + pauseMode.hashCode() +
             randomMinDurationMs.hashCode() + randomMaxDurationMs.hashCode() +
-            randomMostLikelyDurationMs.hashCode()
+            randomMostLikelyDurationMs.hashCode() + randomSpread.hashCode()
 
     override fun deepCopy(): Pause = copy(name = "" + name)
 }
