@@ -422,7 +422,7 @@ class EditedItemsBuilder internal constructor(
 
     fun createNewActionFrom(from: Action, eventId: Identifier = getEditedEventIdOrThrow()): Action = when (from) {
         is Click -> createNewClickFrom(from, eventId)
-        is MultiTouch -> from.copy(
+        is MultiTouch -> from.deepCopy().copy(
             id = actionsIdCreator.generateNewIdentifier(),
             eventId = eventId,
             name = "" + from.name,
