@@ -487,6 +487,7 @@ internal open class CompatDeserializer : Deserializer {
             ActionType.CHANGE_COUNTER -> deserializeActionChangeCounter(jsonAction)
             ActionType.NOTIFICATION -> deserializeActionNotification(jsonAction)
             ActionType.SYSTEM -> deserializeActionSystem(jsonAction)
+            ActionType.WEBHOOK -> deserializeActionWebhook(jsonAction)
             ActionType.TEXT -> deserializeActionSetText(jsonAction)
             null -> null
         }
@@ -831,6 +832,29 @@ internal open class CompatDeserializer : Deserializer {
             type = ActionType.NOTIFICATION,
             notificationImportance = channelImportance,
             notificationMessageText = jsonNotification.getString("notificationMessageText") ?: "",
+        )
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionWebhook(jsonWebhook: JsonObject): ActionEntity? {
+        val id = jsonWebhook.getLong("id", true) ?: return null
+        val eventId = jsonWebhook.getLong("eventId", true) ?: return null
+        val mode = jsonWebhook.getString("webhookMode") ?: return null
+        if (mode != "TELEGRAM_BOT" && mode != "CUSTOM_POST") return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonWebhook.getString("name") ?: "",
+            priority = jsonWebhook.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.WEBHOOK,
+            webhookMode = mode,
+            webhookTelegramBotToken = jsonWebhook.getString("webhookTelegramBotToken"),
+            webhookTelegramChatId = jsonWebhook.getString("webhookTelegramChatId"),
+            webhookTelegramMessage = jsonWebhook.getString("webhookTelegramMessage"),
+            webhookCustomUrl = jsonWebhook.getString("webhookCustomUrl"),
+            webhookCustomContentType = jsonWebhook.getString("webhookCustomContentType"),
+            webhookCustomBody = jsonWebhook.getString("webhookCustomBody"),
         )
     }
 

@@ -30,6 +30,7 @@
 * **Multi-touch Actions**: Configure two-finger presses, drags, or random-area movement with optional end positions for each finger.
 * **Randomized Pauses**: Set pause actions to a fixed duration or an inclusive random duration range.
 * **Advanced Automation**: Enhance your automation scripts with advanced features like counters operations, Android Intents, and flow control, giving you unparalleled flexibility.
+* **Webhooks**: Send Telegram Bot messages or custom HTTPS POST requests with counter values resolved when the action runs; Telegram bot tokens are included in scenario exports.
 * **Triggers**: Set up sophisticated triggers based on image detection, timers, counters, and Android broadcast receivers to perfectly tailor your automation tasks.
 * **Regular Mode**: Enjoy a straightforward auto-clicking experience with our Regular Mode, designed for easy configuration and ideal for simpler, repetitive tasks.
 * **Tutorials**: Learn to master Klick'r with our interactive game tutorials, which provide step-by-step instructions to help you automate tasks and beat the game using Klick'r's powerful features.

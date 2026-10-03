@@ -21,6 +21,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.condition.Condition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
@@ -161,6 +163,26 @@ class GetCounterReadReferencesUseCaseTest {
         assertEquals(setOf(COUNTER_A), result.keys)
         val ref = result[COUNTER_A]?.first() as? CounterReference.ActionElement
         assertEquals(action, ref?.action)
+    }
+
+    @Test
+    fun `Webhook message and body counter references are read references`() = runTest {
+        val action = Webhook(
+            id = Identifier(databaseId = 4L),
+            eventId = Identifier(databaseId = 1L),
+            name = "Webhook",
+            priority = 0,
+            mode = WebhookMode.CUSTOM_POST,
+            telegramMessage = "Value: {$COUNTER_A}",
+            customBody = "Count: {$COUNTER_B}",
+        )
+        mockEvents(listOf(event(actions = listOf(action))))
+
+        val result = useCase().first()
+
+        assertEquals(setOf(COUNTER_A, COUNTER_B), result.keys)
+        assertEquals(action, (result[COUNTER_A]?.first() as CounterReference.ActionElement).action)
+        assertEquals(action, (result[COUNTER_B]?.first() as CounterReference.ActionElement).action)
     }
 
     @Test

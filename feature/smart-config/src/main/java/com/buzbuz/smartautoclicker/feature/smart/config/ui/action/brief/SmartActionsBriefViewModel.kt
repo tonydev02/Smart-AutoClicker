@@ -173,6 +173,7 @@ class SmartActionsBriefViewModel @Inject constructor(
         ActionTypeChoice.Notification -> editionRepository.editedItemsBuilder.createNewNotification(context)
         ActionTypeChoice.System -> editionRepository.editedItemsBuilder.createNewSystemAction(context)
         ActionTypeChoice.SetText -> editionRepository.editedItemsBuilder.createNewSetText(context)
+        ActionTypeChoice.Webhook -> editionRepository.editedItemsBuilder.createNewWebhook(context)
         ActionTypeChoice.Copy -> throw IllegalArgumentException("Unsupported action type for creation $choice")
     }
 
@@ -347,5 +348,6 @@ internal fun buildActionTypeChoices(canCopy: Boolean, legacyEnabled: Boolean): L
         add(ActionTypeChoice.ChangeCounter)
         add(ActionTypeChoice.ToggleEvent)
         add(ActionTypeChoice.Notification)
+        add(ActionTypeChoice.Webhook)
         add(ActionTypeChoice.Intent)
     }

@@ -122,6 +122,21 @@
     <string name="item_notification_title">Notification</string>
     <string name="item_notification_desc">Send a notification to your device</string>
     <string name="item_notification_details_text">Send \"%1$s\"</string>
+    <string name="item_webhook_title">Webhook</string>
+    <string name="item_webhook_desc">Send an HTTPS request or Telegram Bot message</string>
+    <string name="action_webhook_telegram_description">Webhook · Telegram Bot</string>
+    <string name="action_webhook_custom_description">Webhook · %1$s</string>
+    <string name="dialog_title_webhook">Webhook</string>
+    <string name="field_webhook_mode">Mode</string>
+    <string name="field_webhook_mode_telegram">Telegram Bot</string>
+    <string name="field_webhook_mode_custom">Custom POST</string>
+    <string name="field_webhook_token">Bot token</string>
+    <string name="field_webhook_chat_id">Chat ID</string>
+    <string name="field_webhook_message">Message</string>
+    <string name="field_webhook_url">HTTPS URL</string>
+    <string name="field_webhook_content_type">Content type</string>
+    <string name="field_webhook_body">Body</string>
+    <string name="message_webhook_backup_warning">The bot token is stored in this scenario and included in exports.</string>
 
     <string name="item_system_action_title">System action</string>
     <string name="item_system_action_desc">Use an Android system action (back, home or recent apps)</string>

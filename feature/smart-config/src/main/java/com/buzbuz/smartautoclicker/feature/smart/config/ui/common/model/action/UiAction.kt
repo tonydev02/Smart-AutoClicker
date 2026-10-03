@@ -30,6 +30,10 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.feature.smart.config.R
+import android.net.Uri
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 
 
@@ -63,6 +67,7 @@ internal fun Action.getIconRes(): Int = when (this) {
     is Pause -> getPauseIconRes()
     is SystemAction -> getSystemActionIconRes()
     is SetText -> getSetTextIconRes()
+    is Webhook -> R.drawable.ic_action_webhook
 }
 
 internal fun Action.getActionDescription(context: Context, parent: Event?, inError: Boolean): String = when (this) {
@@ -77,4 +82,11 @@ internal fun Action.getActionDescription(context: Context, parent: Event?, inErr
     is Pause -> getDescription(context, inError)
     is SystemAction -> getDescription(context, inError)
     is SetText -> getDescription(context, inError)
+    is Webhook -> when (mode) {
+        WebhookMode.TELEGRAM_BOT -> context.getString(R.string.action_webhook_telegram_description)
+        WebhookMode.CUSTOM_POST -> context.getString(
+            R.string.action_webhook_custom_description,
+            Uri.parse(customUrl.orEmpty()).host.orEmpty(),
+        )
+    }
 }

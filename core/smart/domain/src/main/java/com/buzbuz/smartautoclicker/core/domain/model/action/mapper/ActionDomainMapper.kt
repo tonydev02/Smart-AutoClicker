@@ -24,6 +24,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
@@ -41,6 +43,7 @@ internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = 
     ActionType.CHANGE_COUNTER -> toDomainChangeCounter(cleanIds)
     ActionType.NOTIFICATION -> toDomainNotification(cleanIds)
     ActionType.SYSTEM -> toDomainSystem(cleanIds)
+    ActionType.WEBHOOK -> toDomainWebhook(cleanIds)
     ActionType.TEXT -> toDomainSetText(cleanIds)
 }
 
@@ -176,6 +179,20 @@ private fun CompleteActionEntity.toDomainNotification(cleanIds: Boolean = false)
     priority = action.priority,
     channelImportance = action.notificationImportance!!,
     messageText = action.notificationMessageText!!,
+)
+
+private fun CompleteActionEntity.toDomainWebhook(cleanIds: Boolean = false) = Webhook(
+    id = Identifier(id = action.id, asTemporary = cleanIds),
+    eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
+    name = action.name,
+    priority = action.priority,
+    mode = WebhookMode.valueOf(action.webhookMode!!),
+    telegramBotToken = action.webhookTelegramBotToken,
+    telegramChatId = action.webhookTelegramChatId,
+    telegramMessage = action.webhookTelegramMessage,
+    customUrl = action.webhookCustomUrl,
+    customContentType = action.webhookCustomContentType,
+    customBody = action.webhookCustomBody,
 )
 
 private fun CompleteActionEntity.toDomainSystem(cleanIds: Boolean = false) = SystemAction(

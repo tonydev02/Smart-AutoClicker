@@ -154,4 +154,38 @@ class DeserializerTests {
 
         assertEquals(rangeScenario, restored)
     }
+    @Test
+    fun currentVersionRoundTripsWebhookActionWithBothModeConfigurations() {
+        val webhookScenario = DEFAULT_COMPLETE_SCENARIO.copy(
+            events = DEFAULT_COMPLETE_SCENARIO.events.map { event ->
+                event.copy(
+                    actions = listOf(
+                        CompleteActionEntity(
+                            action = ActionEntity(
+                                id = 9,
+                                eventId = 1,
+                                priority = 0,
+                                name = "Webhook",
+                                type = ActionType.WEBHOOK,
+                                webhookMode = "CUSTOM_POST",
+                                webhookTelegramBotToken = "secret-token",
+                                webhookTelegramChatId = "-123",
+                                webhookTelegramMessage = "hello",
+                                webhookCustomUrl = "https://example.com/hook?secret=value",
+                                webhookCustomContentType = "application/json",
+                                webhookCustomBody = """{"message":"hello"}""",
+                            ),
+                            intentExtras = emptyList(),
+                            eventsToggle = emptyList(),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        val restored = DeserializerFactory.create(DATABASE_VERSION)
+            ?.deserializeCompleteScenario(webhookScenario.encodeToJsonObject())
+
+        assertEquals(webhookScenario, restored)
+    }
 }

@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 
@@ -85,6 +86,8 @@ private fun assertSameActionNoIdCheck(expected: Action, actual: Action) {
         expected is Pause && actual is Pause -> assertSamePauseNoIdCheck(expected, actual)
         expected is Intent && actual is Intent -> assertSameIntentNoIdCheck(expected, actual)
         expected is ToggleEvent && actual is ToggleEvent -> assertSameToggleEventNoIdCheck(expected, actual)
+        expected is Webhook && actual is Webhook ->
+            assertEquals(expected.copy(id = actual.id, eventId = actual.eventId), actual)
         else -> fail("Actions doesn't have the same type")
     }
 }

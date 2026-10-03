@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.copy.model.ItemWithMissingReferences
@@ -86,6 +87,7 @@ class ReplaceMissingScreenConditionReferenceUseCase @Inject constructor() {
             is RandomMovement,
             is Swipe,
             is SystemAction,
+            is Webhook,
             is ToggleEvent -> {
                 Log.e(TAG, "Can't replace, action type is not supported.")
                 return null

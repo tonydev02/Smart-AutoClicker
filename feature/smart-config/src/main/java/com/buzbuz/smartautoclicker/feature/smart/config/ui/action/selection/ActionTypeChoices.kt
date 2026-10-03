@@ -116,4 +116,10 @@ sealed class ActionTypeChoice(
         R.string.item_set_text_desc,
         getSetTextIconRes(),
     )
+    /** HTTP webhook action choice. */
+    data object Webhook : ActionTypeChoice(
+        R.string.item_webhook_title,
+        R.string.item_webhook_desc,
+        R.drawable.ic_action_webhook,
+    )
 }

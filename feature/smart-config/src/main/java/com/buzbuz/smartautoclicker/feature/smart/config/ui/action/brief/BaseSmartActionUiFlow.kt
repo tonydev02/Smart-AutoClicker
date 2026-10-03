@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.OnActionConfigCompleteListener
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.changecounter.ChangeCounterDialog
@@ -45,6 +46,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.system.SystemA
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch.MultiTouchDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.randommovement.RandomMovementDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.ToggleEventDialog
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.webhook.WebhookDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.common.starters.newNotificationPermissionStarterOverlay
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.copy.action.ActionCopyDialog
 
@@ -109,6 +111,7 @@ internal fun BaseOverlay.showActionConfigDialog(configurator: ActionConfigurator
         is ToggleEvent -> ToggleEventDialog(actionConfigDialogListener)
         is ChangeCounter -> ChangeCounterDialog(actionConfigDialogListener)
         is SetText -> SetTextDialog(actionConfigDialogListener)
+        is Webhook -> WebhookDialog(actionConfigDialogListener)
         is Notification -> {
             if (PermissionPostNotification().checkIfGranted(context)) NotificationDialog(actionConfigDialogListener)
             else newNotificationPermissionStarterOverlay(context)

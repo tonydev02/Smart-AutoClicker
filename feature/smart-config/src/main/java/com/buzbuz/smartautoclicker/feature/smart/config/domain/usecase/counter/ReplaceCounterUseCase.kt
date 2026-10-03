@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.condition.Condition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
@@ -120,6 +121,21 @@ class ReplaceCounterUseCase @Inject constructor(
                     editionRepository.updateEditedAction(
                         this.copy(text = text.replace("{${from.counterName}}", "{${to.counterName}}"))
                     )
+                    editionRepository.upsertEditedAction()
+                }
+            }
+            is Webhook -> {
+                fun String?.replaceReference(): String? = this?.replace(
+                    "{${from.counterName}}",
+                    "{${to.counterName}}",
+                )
+                val updated = copy(
+                    telegramMessage = telegramMessage.replaceReference(),
+                    customBody = customBody.replaceReference(),
+                )
+                if (updated != this) {
+                    editionRepository.startActionEdition(this)
+                    editionRepository.updateEditedAction(updated)
                     editionRepository.upsertEditedAction()
                 }
             }

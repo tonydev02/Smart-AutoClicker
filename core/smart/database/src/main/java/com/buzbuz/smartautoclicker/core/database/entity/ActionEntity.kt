@@ -86,6 +86,13 @@ import kotlinx.serialization.ExperimentalSerializationApi
  * @param notificationMessageText [ActionType.NOTIFICATION] only: used as notification message.
  * @param notificationImportance [ActionType.NOTIFICATION] only: how the notification will behave.
  *
+ * @param webhookMode [ActionType.WEBHOOK] only: selects the Telegram Bot or custom POST configuration.
+ * @param webhookTelegramBotToken [ActionType.WEBHOOK] only: Telegram Bot token; included in scenario exports.
+ * @param webhookTelegramChatId [ActionType.WEBHOOK] only: Telegram chat identifier.
+ * @param webhookTelegramMessage [ActionType.WEBHOOK] only: Telegram message template.
+ * @param webhookCustomUrl [ActionType.WEBHOOK] only: custom HTTP POST destination.
+ * @param webhookCustomContentType [ActionType.WEBHOOK] only: custom POST Content-Type.
+ * @param webhookCustomBody [ActionType.WEBHOOK] only: custom POST body template.
  * @param systemActionType [ActionType.SYSTEM] only: the type of system action to execute.
  *
  * @param textValue [ActionType.TEXT] only: the text to type in the focused view
@@ -165,6 +172,15 @@ data class ActionEntity(
     // ActionType.NOTIFICATION
     @ColumnInfo(name = "notification_message_text") val notificationMessageText: String? = null,
     @ColumnInfo(name = "notification_importance") var notificationImportance: Int? = null,
+
+    // ActionType.WEBHOOK
+    @ColumnInfo(name = "webhook_mode") val webhookMode: String? = null,
+    @ColumnInfo(name = "webhook_telegram_bot_token") val webhookTelegramBotToken: String? = null,
+    @ColumnInfo(name = "webhook_telegram_chat_id") val webhookTelegramChatId: String? = null,
+    @ColumnInfo(name = "webhook_telegram_message") val webhookTelegramMessage: String? = null,
+    @ColumnInfo(name = "webhook_custom_url") val webhookCustomUrl: String? = null,
+    @ColumnInfo(name = "webhook_custom_content_type") val webhookCustomContentType: String? = null,
+    @ColumnInfo(name = "webhook_custom_body") val webhookCustomBody: String? = null,
 
     // ActionType.SYSTEM
     @ColumnInfo(name = "system_action_type") val systemActionType: SystemActionType? = null,

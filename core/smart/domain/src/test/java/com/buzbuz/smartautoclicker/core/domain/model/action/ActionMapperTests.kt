@@ -420,4 +420,84 @@ class ActionMapperTests {
             ActionTestsData.getNewSetTextEntity(eventId = ActionTestsData.ACTION_EVENT_ID).toDomain(),
         )
     }
+
+    @Test
+    fun webhook_bothModesRoundTripAndRedactDiagnostics() {
+        val actions = listOf(
+            Webhook(
+                id = 3L.asIdentifier(),
+                eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+                name = "Telegram",
+                priority = 1,
+                mode = WebhookMode.TELEGRAM_BOT,
+                telegramBotToken = "secret-token",
+                telegramChatId = "-12345",
+                telegramMessage = "Hello {score}",
+            ),
+            Webhook(
+                id = 4L.asIdentifier(),
+                eventId = ActionTestsData.ACTION_EVENT_ID.asIdentifier(),
+                name = "Custom",
+                priority = 2,
+                mode = WebhookMode.CUSTOM_POST,
+                customUrl = "https://example.com/hooks/private?key=secret",
+                customContentType = "application/json",
+                customBody = """{"score":"{score}"}""",
+            ),
+        )
+
+        actions.forEach { action ->
+            assertTrue(action.isComplete())
+            assertEquals(action, action.deepCopy())
+            assertEquals(
+                action.hashCodeNoIds(),
+                action.copy(id = 10L.asIdentifier(), eventId = 11L.asIdentifier()).hashCodeNoIds(),
+            )
+            assertEquals(
+                action,
+                CompleteActionEntity(action.toEntity(), emptyList(), emptyList()).toDomain(),
+            )
+        }
+
+        val diagnostic = actions.first().toString()
+        assertFalse(diagnostic.contains("secret-token"))
+        assertFalse(diagnostic.contains("-12345"))
+        assertFalse(diagnostic.contains("Hello"))
+        assertFalse(actions.last().toString().contains("private"))
+    }
+
+    @Test
+    fun webhook_validatesModeConfigurationAndTelegramLength() {
+        val telegram = Webhook(
+            id = 1L.asIdentifier(),
+            eventId = 2L.asIdentifier(),
+            name = "Telegram",
+            priority = 0,
+            mode = WebhookMode.TELEGRAM_BOT,
+            telegramBotToken = "token",
+            telegramChatId = "@channel",
+            telegramMessage = "x".repeat(MAX_WEBHOOK_TELEGRAM_MESSAGE_LENGTH),
+        )
+        assertTrue(telegram.isComplete())
+        assertFalse(telegram.copy(telegramBotToken = " ").isComplete())
+        assertFalse(telegram.copy(telegramChatId = "").isComplete())
+        assertFalse(telegram.copy(telegramMessage = "x".repeat(MAX_WEBHOOK_TELEGRAM_MESSAGE_LENGTH + 1)).isComplete())
+
+        val custom = Webhook(
+            id = 1L.asIdentifier(),
+            eventId = 2L.asIdentifier(),
+            name = "Custom",
+            priority = 0,
+            mode = WebhookMode.CUSTOM_POST,
+            customUrl = "https://example.com/hook",
+            customContentType = "application/json",
+            customBody = "",
+        )
+        assertTrue(custom.isComplete())
+        assertFalse(custom.copy(customUrl = "ftp://example.com/hook").isComplete())
+        assertFalse(custom.copy(customUrl = "http://example.com/hook").isComplete())
+        assertFalse(custom.copy(customUrl = "https:///missing-host").isComplete())
+        assertFalse(custom.copy(customContentType = " ").isComplete())
+        assertFalse(custom.copy(customBody = null).isComplete())
+    }
 }

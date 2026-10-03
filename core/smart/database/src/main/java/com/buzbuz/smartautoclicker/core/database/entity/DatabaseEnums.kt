@@ -57,6 +57,8 @@ enum class ActionType {
     TEXT,
     /** One finger moving randomly within a selected area. */
     RANDOM_MOVEMENT,
+    /** Send a Telegram Bot message or a custom HTTP POST. */
+    WEBHOOK,
 }
 
 

@@ -31,6 +31,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationValue
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
@@ -64,6 +65,7 @@ class GetActionMissingReferencesUseCase @Inject constructor(
             is Click -> action.getMissingReferences(copyResultEvents)
             is Notification -> action.getMissingReferences()
             is SetText -> action.getMissingReferences()
+            is Webhook -> action.getMissingReferences()
             is ToggleEvent -> action.getMissingReferences(copyResultEvents)
 
             // Nothing is referenced in those actions
@@ -114,6 +116,13 @@ class GetActionMissingReferencesUseCase @Inject constructor(
 
     private fun SetText.getMissingReferences(): List<MissingCopyReference> =
         text.findCounterReferences()
+            .filter { counterName -> editionRepository.editionState.getCounter(counterName) == null }
+            .map { counterName -> MissingCopyReference.CounterReference(counterName) }
+
+    private fun Webhook.getMissingReferences(): List<MissingCopyReference> =
+        listOfNotNull(telegramMessage, customBody)
+            .flatMap { it.findCounterReferences() }
+            .distinct()
             .filter { counterName -> editionRepository.editionState.getCounter(counterName) == null }
             .map { counterName -> MissingCopyReference.CounterReference(counterName) }
 

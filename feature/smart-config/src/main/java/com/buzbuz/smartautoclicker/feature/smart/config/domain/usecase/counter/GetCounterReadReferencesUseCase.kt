@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.condition.Condition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
@@ -104,6 +105,11 @@ class GetCounterReadReferencesUseCase @Inject constructor(
                         action.text.findCounterReferences().forEach { counterName ->
                             addReference(event, counterName, action)
                         }
+                    }
+                    is Webhook -> {
+                        listOfNotNull(action.telegramMessage, action.customBody)
+                            .flatMap { it.findCounterReferences() }
+                            .forEach { counterName -> addReference(event, counterName, action) }
                     }
 
                     is ChangeCounter -> {

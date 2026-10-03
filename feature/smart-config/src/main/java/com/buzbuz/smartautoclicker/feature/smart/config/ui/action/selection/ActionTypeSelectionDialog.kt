@@ -73,7 +73,8 @@ class ActionTypeSelectionDialog(
             ActionTypeChoice.Pause,
             ActionTypeChoice.SetText,
             ActionTypeChoice.Swipe,
-            ActionTypeChoice.System -> Unit
+            ActionTypeChoice.System,
+            ActionTypeChoice.Webhook -> Unit
         }
         if (choice !is ActionTypeChoice.Click) return
 

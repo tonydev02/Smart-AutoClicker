@@ -29,6 +29,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.intent.compone
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.intent.extras.ExtraConfigModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.intent.flags.FlagsSelectionViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.notification.NotificationViewModel
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.webhook.WebhookViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.pause.PauseViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.settext.SetTextViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.swipe.SwipeViewModel
@@ -114,6 +115,7 @@ interface ScenarioConfigViewModelsEntryPoint {
     fun moreViewModel(): MoreViewModel
     fun numberConditionViewModel(): NumberConditionViewModel
     fun notificationViewModel(): NotificationViewModel
+    fun webhookViewModel(): WebhookViewModel
     fun pauseViewModel(): PauseViewModel
     fun scenarioConfigViewModel(): ScenarioConfigViewModel
     fun scenarioDialogViewModel(): ScenarioDialogViewModel

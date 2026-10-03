@@ -49,6 +49,9 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
+import com.buzbuz.smartautoclicker.core.domain.model.action.MAX_WEBHOOK_TELEGRAM_MESSAGE_LENGTH
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.putDomainExtra
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
@@ -58,6 +61,10 @@ import com.buzbuz.smartautoclicker.core.processing.data.processor.state.Processi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
+import kotlinx.coroutines.CancellationException
 import kotlin.random.Random
 
 /**
@@ -72,6 +79,7 @@ internal class ActionExecutor(
     private val processingState: ProcessingState,
     randomize: Boolean,
     unblockWorkaroundEnabled: Boolean = false,
+    private val webhookHttpClient: WebhookHttpClient = HttpUrlConnectionWebhookHttpClient(),
 ) {
 
     init { androidExecutor.resetState() }
@@ -111,6 +119,7 @@ internal class ActionExecutor(
                 is Notification -> executeNotification(event, action)
                 is SystemAction -> executeSystemAction(action)
                 is SetText -> executeSetText(action)
+                is Webhook -> executeWebhook(action)
             }
         }
     }
@@ -364,6 +373,75 @@ internal class ActionExecutor(
             )
         }
     }
+
+    private suspend fun executeWebhook(action: Webhook) {
+        val (url, contentType, body) = when (action.mode) {
+            WebhookMode.TELEGRAM_BOT -> {
+                val token = action.telegramBotToken
+                val chatId = action.telegramChatId
+                val messageTemplate = action.telegramMessage
+                if (token.isNullOrBlank() || chatId.isNullOrBlank() || messageTemplate == null) {
+                    Log.w(TAG, "Webhook configuration is incomplete")
+                    return
+                }
+
+                val message = messageTemplate.replaceWebhookCounterReferences()
+                if (message.length > MAX_WEBHOOK_TELEGRAM_MESSAGE_LENGTH) {
+                    Log.w(TAG, "Webhook Telegram message exceeds the supported length")
+                    return
+                }
+
+                val encodedChatId = URLEncoder.encode(chatId, StandardCharsets.UTF_8.name())
+                val encodedMessage = URLEncoder.encode(message, StandardCharsets.UTF_8.name())
+                Triple(
+                    "https://api.telegram.org/bot$token/sendMessage",
+                    "application/x-www-form-urlencoded; charset=UTF-8",
+                    "chat_id=$encodedChatId&text=$encodedMessage".toByteArray(StandardCharsets.UTF_8),
+                )
+            }
+
+            WebhookMode.CUSTOM_POST -> {
+                val url = action.customUrl
+                val contentType = action.customContentType
+                val bodyTemplate = action.customBody
+                if (url.isNullOrBlank() || contentType.isNullOrBlank() || bodyTemplate == null) {
+                    Log.w(TAG, "Webhook configuration is incomplete")
+                    return
+                }
+                Triple(
+                    url,
+                    contentType,
+                    bodyTemplate.replaceWebhookCounterReferences().toByteArray(StandardCharsets.UTF_8),
+                )
+            }
+        }
+
+        try {
+            val result = webhookHttpClient.post(url, contentType, body)
+            if (result.statusCode !in 200..299) {
+                Log.w(TAG, "Webhook request failed with HTTP status ${result.statusCode}")
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            Log.w(TAG, "Webhook request failed")
+        }
+    }
+
+    private fun String.replaceWebhookCounterReferences(): String =
+        WEBHOOK_COUNTER_REFERENCE_REGEX.replace(this) { match ->
+            val counterName = match.groupValues[1]
+            processingState.getCounterValue(counterName)?.toWebhookString() ?: match.value
+        }
+
+    private fun Double.toWebhookString(): String {
+        val text = toString()
+        return if (isFinite() && this % 1.0 == 0.0) {
+            text.removeSuffix(".0").replace(".0E", "E")
+        } else {
+            text
+        }
+    }
 }
 
 /** Tag for logs. */
@@ -372,3 +450,4 @@ private const val TAG = "ActionExecutor"
 private const val INTENT_START_ACTIVITY_DELAY = 1000L
 /** Waiting delay after a broadcast to avoid overflowing the system. */
 private const val INTENT_BROADCAST_DELAY = 100L
+private val WEBHOOK_COUNTER_REFERENCE_REGEX = Regex("\\{([^{}]+)\\}")

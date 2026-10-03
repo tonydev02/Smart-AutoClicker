@@ -475,6 +475,38 @@ class CompatDeserializerTests {
         assertNull(resultWithoutEndpoint.randomAreaEndY)
     }
 
+    @Test
+    fun deserializeAction_webhookPreservesModeAndCredentials() {
+        val json = createActionJson(
+            ActionType.WEBHOOK,
+            mapOf(
+                "webhookMode" to JsonPrimitive("TELEGRAM_BOT"),
+                "webhookTelegramBotToken" to JsonPrimitive("secret-token"),
+                "webhookTelegramChatId" to JsonPrimitive("-100123"),
+                "webhookTelegramMessage" to JsonPrimitive("hello {count}"),
+                "webhookCustomUrl" to JsonPrimitive("https://example.com/hook"),
+                "webhookCustomContentType" to JsonPrimitive("application/json"),
+                "webhookCustomBody" to JsonPrimitive("""{"count":"{count}"}"""),
+            ),
+        )
+
+        val result = deserializeActionForVersion(29, json)!!
+
+        assertEquals(ActionType.WEBHOOK, result.type)
+        assertEquals("TELEGRAM_BOT", result.webhookMode)
+        assertEquals("secret-token", result.webhookTelegramBotToken)
+        assertEquals("-100123", result.webhookTelegramChatId)
+        assertEquals("hello {count}", result.webhookTelegramMessage)
+        assertEquals("https://example.com/hook", result.webhookCustomUrl)
+        assertEquals("application/json", result.webhookCustomContentType)
+        assertEquals("""{"count":"{count}"}""", result.webhookCustomBody)
+        assertNull(
+            deserializeActionForVersion(
+                29,
+                createActionJson(ActionType.WEBHOOK, mapOf("webhookMode" to JsonPrimitive("INVALID"))),
+            ),
+        )
+    }
     private fun deserializeActionForVersion(version: Int, json: JsonObject) =
         (DeserializerFactory.create(version) as CompatDeserializer)
             .deserializeAction(json, emptyList(), 1)

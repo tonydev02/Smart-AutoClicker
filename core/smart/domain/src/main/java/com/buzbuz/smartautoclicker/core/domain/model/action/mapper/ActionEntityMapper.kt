@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
@@ -51,6 +52,7 @@ internal fun Action.toEntity(): ActionEntity {
         is ChangeCounter -> toChangeCounterEntity()
         is Notification -> toNotificationEntity()
         is SystemAction -> toSystemActionEntity()
+        is Webhook -> toWebhookEntity()
         is SetText -> toSetTextEntity()
     }
 }
@@ -200,6 +202,22 @@ private fun Notification.toNotificationEntity(): ActionEntity =
         type = ActionType.NOTIFICATION,
         notificationImportance = channelImportance,
         notificationMessageText = messageText,
+    )
+
+private fun Webhook.toWebhookEntity(): ActionEntity =
+    ActionEntity(
+        id = id.databaseId,
+        eventId = eventId.databaseId,
+        priority = priority,
+        name = name!!,
+        type = ActionType.WEBHOOK,
+        webhookMode = mode.name,
+        webhookTelegramBotToken = telegramBotToken,
+        webhookTelegramChatId = telegramChatId,
+        webhookTelegramMessage = telegramMessage,
+        webhookCustomUrl = customUrl,
+        webhookCustomContentType = customContentType,
+        webhookCustomBody = customBody,
     )
 
 private fun SystemAction.toSystemActionEntity(): ActionEntity =

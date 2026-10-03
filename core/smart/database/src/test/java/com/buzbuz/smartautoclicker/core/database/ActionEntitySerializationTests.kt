@@ -84,4 +84,26 @@ class ActionEntitySerializationTests {
         assertTrue(rangeJson.contains("\"pauseRandomMostLikelyDuration\":1200"))
         assertTrue(rangeJson.contains("\"pauseRandomSpread\":0.6"))
     }
+
+    @Test
+    fun webhookCredentialsAndModeRoundTripInBackupSerialization() {
+        val action = ActionEntity(
+            id = 5L,
+            eventId = 2L,
+            name = "Webhook",
+            type = ActionType.WEBHOOK,
+            webhookMode = "TELEGRAM_BOT",
+            webhookTelegramBotToken = "secret-token",
+            webhookTelegramChatId = "-100123",
+            webhookTelegramMessage = "hello {count}",
+            webhookCustomUrl = "https://example.com/hook",
+            webhookCustomContentType = "application/json",
+            webhookCustomBody = """{"count":"{count}"}""",
+        )
+
+        val json = Json.encodeToString(action)
+        assertTrue(json.contains("\"webhookMode\":\"TELEGRAM_BOT\""))
+        assertTrue(json.contains("\"webhookTelegramBotToken\":\"secret-token\""))
+        assertEquals(action, Json.decodeFromString<ActionEntity>(json))
+    }
 }

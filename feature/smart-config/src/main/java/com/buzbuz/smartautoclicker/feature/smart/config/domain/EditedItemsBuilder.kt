@@ -43,6 +43,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.EventToggle
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.IntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
@@ -420,6 +422,21 @@ class EditedItemsBuilder internal constructor(
             priority = 0,
         )
 
+    fun createNewWebhook(context: Context): Webhook =
+        Webhook(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = getEditedEventIdOrThrow(),
+            name = context.getString(com.buzbuz.smartautoclicker.feature.smart.config.R.string.item_webhook_title),
+            priority = 0,
+            mode = WebhookMode.TELEGRAM_BOT,
+            telegramBotToken = null,
+            telegramChatId = null,
+            telegramMessage = "",
+            customUrl = null,
+            customContentType = "application/json",
+            customBody = "",
+        )
+
     fun createNewSystemAction(context: Context): SystemAction =
         SystemAction(
             id = actionsIdCreator.generateNewIdentifier(),
@@ -453,6 +470,11 @@ class EditedItemsBuilder internal constructor(
         is ChangeCounter -> createNewChangeCounterFrom(from, eventId)
         is Notification -> createNewNotificationFrom(from, eventId)
         is SystemAction -> createNewSystemActionFrom(from, eventId)
+        is Webhook -> from.deepCopy().copy(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = eventId,
+            name = "" + from.name,
+        )
         is SetText -> createNewSetTextFrom(from, eventId)
         is RandomMovement -> from.deepCopy().copy(
             id = actionsIdCreator.generateNewIdentifier(),

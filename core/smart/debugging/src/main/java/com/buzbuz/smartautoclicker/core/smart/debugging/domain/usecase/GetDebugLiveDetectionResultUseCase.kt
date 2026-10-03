@@ -28,6 +28,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.DebuggingRepository
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.model.live.DebugLiveEventOccurrence
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -89,6 +90,7 @@ class GetDebugLiveDetectionResultUseCase @Inject constructor(
                 is Notification,
                 is SetText,
                 is SystemAction,
+                is Webhook,
                 is ToggleEvent -> 0
             }
         }

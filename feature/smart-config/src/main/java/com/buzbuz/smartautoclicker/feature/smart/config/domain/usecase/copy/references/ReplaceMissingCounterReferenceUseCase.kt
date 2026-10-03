@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.condition.Condition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
@@ -103,6 +104,7 @@ class ReplaceMissingCounterReferenceUseCase @Inject constructor() {
             is ChangeCounter -> replaceCounterReference(oldName, newName)
             is Notification -> replaceCounterReference(oldName, newName)
             is SetText -> replaceCounterReference(oldName, newName)
+            is Webhook -> replaceCounterReference(oldName, newName)
 
             is Click,
             is Intent,
@@ -130,6 +132,12 @@ class ReplaceMissingCounterReferenceUseCase @Inject constructor() {
 
     private fun SetText.replaceCounterReference(oldName: String, newName: String): SetText =
         copy(text = text.replaceCounterName(oldName, newName))
+
+    private fun Webhook.replaceCounterReference(oldName: String, newName: String): Webhook =
+        copy(
+            telegramMessage = telegramMessage?.replaceCounterName(oldName, newName),
+            customBody = customBody?.replaceCounterName(oldName, newName),
+        )
 
     private fun Condition.replaceCounterReference(oldName: String, newName: String): Condition? =
         when (this) {

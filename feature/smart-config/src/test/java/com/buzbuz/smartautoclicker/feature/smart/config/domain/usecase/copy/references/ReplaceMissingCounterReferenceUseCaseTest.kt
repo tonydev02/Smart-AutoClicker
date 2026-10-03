@@ -22,6 +22,8 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
+import com.buzbuz.smartautoclicker.core.domain.model.action.WebhookMode
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.counter.ComparisonOperation
 import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationValue
@@ -107,6 +109,27 @@ class ReplaceMissingCounterReferenceUseCaseTest {
     }
 
     // endregion
+
+    @Test
+    fun `replace counter references in both webhook templates`() {
+        val action = Webhook(
+            id = ACTION_ID,
+            eventId = EVENT_ID,
+            name = "webhook",
+            priority = 0,
+            mode = WebhookMode.CUSTOM_POST,
+            telegramMessage = "{$OLD_COUNTER}",
+            customBody = "JSON value: {$OLD_COUNTER}",
+        )
+        val event = triggerEventWithActions(listOf(action))
+        val item = ItemWithMissingReferences.ActionItem(item = action, missingReferences = emptyList())
+        val missingRef = MissingCopyReference.CounterReference(OLD_COUNTER)
+
+        val result = useCase(event, item, missingRef, NEW_COUNTER) as TriggerEvent
+        val updatedAction = result.actions[0] as Webhook
+        assertEquals("{$NEW_COUNTER}", updatedAction.telegramMessage)
+        assertEquals("JSON value: {$NEW_COUNTER}", updatedAction.customBody)
+    }
 
     // region SetText action replacement
 

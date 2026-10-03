@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
+import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationValue
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
@@ -52,6 +53,7 @@ class IsActionRelatedToUnreachableItemUseCase @Inject constructor(
             is Click -> action.isRelatedToUnreachableItem(copyResultEvents)
             is Notification -> action.isRelatedToUnreachableItem()
             is SetText -> action.isRelatedToUnreachableItem()
+            is Webhook -> action.isRelatedToUnreachableItem()
             is ToggleEvent -> action.isRelatedToUnreachableItem(copyResultEvents)
 
             // Nothing is referenced in those actions
@@ -99,6 +101,11 @@ class IsActionRelatedToUnreachableItemUseCase @Inject constructor(
 
         return false
     }
+
+    private fun Webhook.isRelatedToUnreachableItem(): Boolean =
+        listOfNotNull(telegramMessage, customBody)
+            .flatMap { it.findCounterReferences() }
+            .any { counterName -> editionRepository.counterIsUnreachable(counterName) }
 
     private fun ToggleEvent.isRelatedToUnreachableItem(copyResultEvents: Map<Identifier, Event>): Boolean {
         if (toggleAll) return false
