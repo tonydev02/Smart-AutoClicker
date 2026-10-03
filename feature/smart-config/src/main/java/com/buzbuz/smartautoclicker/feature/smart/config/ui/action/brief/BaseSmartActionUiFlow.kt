@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
@@ -40,8 +41,9 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.selection.Acti
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.selection.ActionTypeSelectionDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.settext.SetTextDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.swipe.SwipeDialog
-import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch.MultiTouchDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.system.SystemActionDialog
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch.MultiTouchDialog
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.randommovement.RandomMovementDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.ToggleEventDialog
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.common.starters.newNotificationPermissionStarterOverlay
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.copy.action.ActionCopyDialog
@@ -101,6 +103,7 @@ internal fun BaseOverlay.showActionConfigDialog(configurator: ActionConfigurator
         is Swipe -> SwipeDialog(actionConfigDialogListener)
         is Intent -> IntentDialog(actionConfigDialogListener)
         is MultiTouch -> MultiTouchDialog(actionConfigDialogListener)
+        is RandomMovement -> RandomMovementDialog(actionConfigDialogListener)
         is Pause -> PauseDialog(actionConfigDialogListener)
         is SystemAction -> SystemActionDialog(actionConfigDialogListener)
         is ToggleEvent -> ToggleEventDialog(actionConfigDialogListener)

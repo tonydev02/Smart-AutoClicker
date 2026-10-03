@@ -33,6 +33,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.pause.PauseVie
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.settext.SetTextViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.swipe.SwipeViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch.MultiTouchViewModel
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.randommovement.RandomMovementViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.system.SystemActionViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.EventTogglesViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.toggleevent.ToggleEventViewModel
@@ -108,6 +109,7 @@ interface ScenarioConfigViewModelsEntryPoint {
     fun intentViewModel(): IntentViewModel
     fun liveDebuggingViewModel(): LiveDebuggingViewModel
     fun multiTouchViewModel(): MultiTouchViewModel
+    fun randomMovementViewModel(): RandomMovementViewModel
     fun mainMenuViewModel(): MainMenuModel
     fun moreViewModel(): MoreViewModel
     fun numberConditionViewModel(): NumberConditionViewModel

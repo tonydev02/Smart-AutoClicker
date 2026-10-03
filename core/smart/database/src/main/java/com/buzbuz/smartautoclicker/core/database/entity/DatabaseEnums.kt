@@ -55,6 +55,8 @@ enum class ActionType {
     SYSTEM,
     /** Set the text of a focused view on the screen. */
     TEXT,
+    /** One finger moving randomly within a selected area. */
+    RANDOM_MOVEMENT,
 }
 
 

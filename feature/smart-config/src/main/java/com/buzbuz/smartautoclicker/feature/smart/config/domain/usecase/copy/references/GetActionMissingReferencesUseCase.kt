@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
@@ -69,6 +70,7 @@ class GetActionMissingReferencesUseCase @Inject constructor(
             is Intent,
             is Pause,
             is MultiTouch,
+            is RandomMovement,
             is Swipe,
             is SystemAction -> emptyList()
         }

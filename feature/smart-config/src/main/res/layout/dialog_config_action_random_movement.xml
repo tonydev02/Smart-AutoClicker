@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/AppTheme.Dialog.BackgroundLayout"
+    android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical">
+    <include layout="@layout/include_dialog_navigation_top_bar" android:id="@+id/layout_top_bar" />
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent" android:layout_height="match_parent">
+        <androidx.constraintlayout.widget.ConstraintLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginHorizontal="@dimen/margin_horizontal_default">
+            <include layout="@layout/include_field_text_input" android:id="@+id/field_name" android:layout_width="match_parent" android:layout_height="wrap_content" app:layout_constraintTop_toTopOf="parent" />
+            <include layout="@layout/include_field_text_input" android:id="@+id/field_duration" android:layout_width="match_parent" android:layout_height="wrap_content" app:layout_constraintTop_toBottomOf="@id/field_name" />
+            <include layout="@layout/include_field_selector" android:id="@+id/field_area" android:layout_width="match_parent" android:layout_height="wrap_content" app:layout_constraintTop_toBottomOf="@id/field_duration" />
+            <TextView android:id="@+id/field_end_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/field_random_movement_end" app:layout_constraintTop_toBottomOf="@id/field_area" app:layout_constraintStart_toStartOf="parent" />
+            <Spinner android:id="@+id/field_end_mode" android:layout_width="match_parent" android:layout_height="wrap_content" app:layout_constraintTop_toBottomOf="@id/field_end_title" app:layout_constraintStart_toStartOf="parent" />
+            <include layout="@layout/include_field_selector" android:id="@+id/field_end_position" android:layout_width="match_parent" android:layout_height="wrap_content" app:layout_constraintTop_toBottomOf="@id/field_end_mode" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

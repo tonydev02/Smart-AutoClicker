@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
@@ -82,6 +83,7 @@ class ReplaceMissingScreenConditionReferenceUseCase @Inject constructor() {
             is Pause,
             is SetText,
             is MultiTouch,
+            is RandomMovement,
             is Swipe,
             is SystemAction,
             is ToggleEvent -> {

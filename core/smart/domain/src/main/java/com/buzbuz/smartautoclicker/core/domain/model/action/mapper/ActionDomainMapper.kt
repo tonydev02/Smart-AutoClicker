@@ -17,6 +17,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Intent
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
@@ -27,11 +28,10 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
-
-/** Convert an Action entity into a Domain Action. */
 internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = when (action.type) {
     ActionType.CLICK -> toDomainClick(cleanIds)
     ActionType.MULTI_TOUCH -> toDomainMultiTouch(cleanIds)
+    ActionType.RANDOM_MOVEMENT -> toDomainRandomMovement(cleanIds)
     ActionType.SWIPE -> toDomainSwipe(cleanIds)
     ActionType.PAUSE -> toDomainPause(cleanIds)
     ActionType.INTENT -> toDomainIntent(cleanIds)
@@ -41,6 +41,7 @@ internal fun CompleteActionEntity.toDomain(cleanIds: Boolean = false): Action = 
     ActionType.SYSTEM -> toDomainSystem(cleanIds)
     ActionType.TEXT -> toDomainSetText(cleanIds)
 }
+
 
 private fun CompleteActionEntity.toDomainClick(cleanIds: Boolean = false) = Click(
     id = Identifier(id = action.id, asTemporary = cleanIds),
@@ -87,6 +88,16 @@ private fun CompleteActionEntity.toDomainSwipe(cleanIds: Boolean = false) = Swip
     swipeDuration = action.swipeDuration!!,
     from = getPositionIfValid(action.fromX, action.fromY),
     to = getPositionIfValid(action.toX, action.toY),
+)
+
+private fun CompleteActionEntity.toDomainRandomMovement(cleanIds: Boolean = false) = RandomMovement(
+    id = Identifier(id = action.id, asTemporary = cleanIds),
+    eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
+    name = action.name,
+    priority = action.priority,
+    area = getRectIfValid(action.randomAreaLeft, action.randomAreaTop, action.randomAreaRight, action.randomAreaBottom),
+    durationMs = action.randomAreaDuration,
+    endPosition = getPositionIfValid(action.randomAreaEndX, action.randomAreaEndY),
 )
 
 private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false) = Pause(

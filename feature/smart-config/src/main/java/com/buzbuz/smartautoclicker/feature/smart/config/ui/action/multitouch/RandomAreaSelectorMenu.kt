@@ -9,8 +9,8 @@ import com.buzbuz.smartautoclicker.core.ui.views.areaselector.AreaSelectorView
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.OverlayValidationMenuBinding
 
-/** MultiTouch-specific host for the shared screen-area selection view. */
-internal class MultiTouchAreaSelectorMenu(
+/** Shared screen-coordinate area selector used by actions with random movement areas. */
+internal class RandomAreaSelectorMenu(
     private val initialArea: Rect?,
     private val onAreaSelected: (Rect) -> Unit,
 ) : OverlayMenu(theme = R.style.ScenarioConfigTheme) {

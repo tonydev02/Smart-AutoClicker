@@ -39,6 +39,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
@@ -51,9 +52,11 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.data.ScenarioEditor
 
+import com.buzbuz.smartautoclicker.core.display.config.DisplayConfigManager
 class EditedItemsBuilder internal constructor(
     private val bitmapRepository: BitmapRepository,
     private val editor: ScenarioEditor,
+    private val displayConfigManager: DisplayConfigManager,
 ) {
 
     private val defaultValues = EditionDefaultValues()
@@ -321,6 +324,22 @@ class EditedItemsBuilder internal constructor(
             priority = 0,
         )
 
+    fun createNewRandomMovement(context: Context): RandomMovement =
+        RandomMovement(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = getEditedEventIdOrThrow(),
+            name = context.getString(com.buzbuz.smartautoclicker.feature.smart.config.R.string.item_random_movement_title),
+            priority = 0,
+            area = displayConfigManager.displayConfig.sizePx.let { size ->
+                val width = 128.coerceAtMost(size.x)
+                val height = 128.coerceAtMost(size.y)
+                val left = (size.x - width) / 2
+                val top = (size.y - height) / 2
+                Rect(left, top, left + width, top + height)
+            },
+            durationMs = 250L,
+        )
+
     fun createNewMultiTouch(context: Context): MultiTouch =
         MultiTouch(
             id = actionsIdCreator.generateNewIdentifier(),
@@ -435,6 +454,11 @@ class EditedItemsBuilder internal constructor(
         is Notification -> createNewNotificationFrom(from, eventId)
         is SystemAction -> createNewSystemActionFrom(from, eventId)
         is SetText -> createNewSetTextFrom(from, eventId)
+        is RandomMovement -> from.deepCopy().copy(
+            id = actionsIdCreator.generateNewIdentifier(),
+            eventId = eventId,
+            name = "" + from.name,
+        )
     }
 
     private fun createNewClickFrom(from: Click, eventId: Identifier): Click {

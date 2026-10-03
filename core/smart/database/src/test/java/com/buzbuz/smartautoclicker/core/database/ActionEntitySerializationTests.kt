@@ -5,7 +5,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.buzbuz.smartautoclicker.core.database.entity.ActionEntity
 import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,6 +16,25 @@ import org.robolectric.annotation.Config
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [Build.VERSION_CODES.Q])
 class ActionEntitySerializationTests {
+
+    @Test
+    fun randomMovementGeometryAndDurationRoundTripInBackupSerialization() {
+        val action = ActionEntity(
+            id = 5L,
+            eventId = 2L,
+            name = "random movement",
+            type = ActionType.RANDOM_MOVEMENT,
+            randomAreaLeft = -10,
+            randomAreaTop = 20,
+            randomAreaRight = 30,
+            randomAreaBottom = 50,
+            randomAreaDuration = 3_000L,
+            randomAreaEndX = 100,
+            randomAreaEndY = -25,
+        )
+
+        assertEquals(action, Json.decodeFromString<ActionEntity>(Json.encodeToString(action)))
+    }
 
     @Test
     fun multitouchEndpointsAndPauseModesAreIncludedInExports() {

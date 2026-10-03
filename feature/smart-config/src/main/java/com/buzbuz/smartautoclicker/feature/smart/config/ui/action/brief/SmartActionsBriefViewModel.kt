@@ -132,7 +132,7 @@ class SmartActionsBriefViewModel @Inject constructor(
                 add(ActionTypeChoice.Click)
                 add(ActionTypeChoice.Swipe)
                 add(ActionTypeChoice.MultiTouch)
-                add(ActionTypeChoice.Pause)
+                add(ActionTypeChoice.RandomMovement)
                 add(ActionTypeChoice.SetText)
                 add(ActionTypeChoice.System)
                 add(ActionTypeChoice.ChangeCounter)
@@ -176,6 +176,7 @@ class SmartActionsBriefViewModel @Inject constructor(
     override fun createAction(context: Context, choice: ActionTypeChoice): Action = when (choice) {
         ActionTypeChoice.Click -> editionRepository.editedItemsBuilder.createNewClick(context)
         ActionTypeChoice.MultiTouch -> editionRepository.editedItemsBuilder.createNewMultiTouch(context)
+        ActionTypeChoice.RandomMovement -> editionRepository.editedItemsBuilder.createNewRandomMovement(context)
         ActionTypeChoice.Swipe -> editionRepository.editedItemsBuilder.createNewSwipe(context)
         ActionTypeChoice.Pause -> editionRepository.editedItemsBuilder.createNewPause(context)
         ActionTypeChoice.Intent -> editionRepository.editedItemsBuilder.createNewIntent(context)

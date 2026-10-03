@@ -478,6 +478,7 @@ internal open class CompatDeserializer : Deserializer {
         when (deserializeActionType(jsonAction)) {
             ActionType.CLICK -> deserializeActionClick(jsonAction, eventConditions, conditionsOperator)
             ActionType.MULTI_TOUCH -> deserializeActionMultiTouch(jsonAction)
+            ActionType.RANDOM_MOVEMENT -> null
             ActionType.SWIPE -> deserializeActionSwipe(jsonAction)
             ActionType.PAUSE -> deserializeActionPause(jsonAction)
             ActionType.INTENT -> deserializeActionIntent(jsonAction)

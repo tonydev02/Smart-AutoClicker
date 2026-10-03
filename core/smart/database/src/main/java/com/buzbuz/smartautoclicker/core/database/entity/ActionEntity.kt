@@ -195,6 +195,14 @@ data class ActionEntity(
     @ColumnInfo(name = "first_touch_random_end_y") val firstTouchRandomEndY: Int? = null,
     @ColumnInfo(name = "second_touch_random_end_x") val secondTouchRandomEndX: Int? = null,
     @ColumnInfo(name = "second_touch_random_end_y") val secondTouchRandomEndY: Int? = null,
+    // ActionType.RANDOM_MOVEMENT
+    @ColumnInfo(name = "random_area_left") val randomAreaLeft: Int? = null,
+    @ColumnInfo(name = "random_area_top") val randomAreaTop: Int? = null,
+    @ColumnInfo(name = "random_area_right") val randomAreaRight: Int? = null,
+    @ColumnInfo(name = "random_area_bottom") val randomAreaBottom: Int? = null,
+    @ColumnInfo(name = "random_area_duration") val randomAreaDuration: Long? = null,
+    @ColumnInfo(name = "random_area_end_x") val randomAreaEndX: Int? = null,
+    @ColumnInfo(name = "random_area_end_y") val randomAreaEndY: Int? = null,
 ) : EntityWithId
 
 /**

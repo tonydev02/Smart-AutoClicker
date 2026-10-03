@@ -65,6 +65,12 @@ sealed class ActionTypeChoice(
         getSwipeIconRes(),
     )
     /** Pause Action choice. */
+
+    data object RandomMovement : ActionTypeChoice(
+        R.string.item_random_movement_title,
+        R.string.item_random_movement_desc,
+        getSwipeIconRes(),
+    )
     data object Pause : ActionTypeChoice(
         R.string.item_pause_title,
         R.string.item_pause_desc,

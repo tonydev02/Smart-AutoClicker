@@ -87,4 +87,38 @@ class DeserializerTests {
         // Then
         assertEquals(DEFAULT_COMPLETE_SCENARIO, deserializedScenario)
     }
+
+    @Test
+    fun currentVersionRoundTripsRandomMovementAction() {
+        val randomMovementScenario = DEFAULT_COMPLETE_SCENARIO.copy(
+            events = DEFAULT_COMPLETE_SCENARIO.events.map { completeEvent ->
+                completeEvent.copy(
+                    actions = listOf(
+                        CompleteActionEntity(
+                            action = ActionEntity(
+                                id = 7,
+                                eventId = 1,
+                                priority = 0,
+                                name = "Random movement",
+                                type = ActionType.RANDOM_MOVEMENT,
+                                randomAreaLeft = 10,
+                                randomAreaTop = 20,
+                                randomAreaRight = 30,
+                                randomAreaBottom = 40,
+                                randomAreaDuration = 3_000L,
+                                randomAreaEndX = 100,
+                                randomAreaEndY = -25,
+                            ),
+                            intentExtras = emptyList(),
+                            eventsToggle = emptyList(),
+                        ),
+                    ),
+                )
+            },
+        )
+        val restored = DeserializerFactory.create(DATABASE_VERSION)
+            ?.deserializeCompleteScenario(randomMovementScenario.encodeToJsonObject())
+
+        assertEquals(randomMovementScenario, restored)
+    }
 }

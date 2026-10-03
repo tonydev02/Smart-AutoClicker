@@ -252,6 +252,37 @@ class ActionMapperTests {
         assertTrue(restored.isComplete())
     }
     @Test
+    fun randomMovement_validatesCopiesAndMapsWithOptionalEndpoints() {
+        val action = RandomMovement(
+            id = 1L.asIdentifier(),
+            eventId = 2L.asIdentifier(),
+            name = "Random movement",
+            priority = 0,
+            area = Rect(10, 20, 40, 60),
+            durationMs = 3_000L,
+        )
+        assertTrue(action.isComplete())
+        assertTrue(action.copy(endPosition = Point(100, -5)).isComplete())
+        assertFalse(action.copy(area = null).isComplete())
+        assertFalse(action.copy(area = Rect(0, 0, 0, 10)).isComplete())
+        assertFalse(action.copy(area = Rect(0, 0, 10, 0)).isComplete())
+        assertFalse(action.copy(durationMs = null).isComplete())
+        assertFalse(action.copy(durationMs = 0L).isComplete())
+        assertFalse(action.copy(durationMs = 60_000L).isComplete())
+
+        val endpoint = Point(100, -5)
+        val copy = action.copy(endPosition = endpoint).deepCopy()
+        assertNotSame(action.area, action.deepCopy().area)
+        assertNotSame(endpoint, copy.endPosition)
+        assertEquals(action.hashCodeNoIds(), action.copy(id = 8L.asIdentifier(), eventId = 9L.asIdentifier()).hashCodeNoIds())
+        assertEquals(7L, action.copyBase(id = 7L.asIdentifier()).id.databaseId)
+
+        listOf(action, action.copy(endPosition = Point(25, 30)), action.copy(endPosition = endpoint)).forEach { configured ->
+            val restored = CompleteActionEntity(configured.toEntity(), emptyList(), emptyList()).toDomain()
+            assertEquals(configured, restored)
+        }
+    }
+    @Test
     fun pause_toEntity() {
         assertEquals(
             ActionTestsData.getNewPauseEntity(eventId = ActionTestsData.ACTION_EVENT_ID).action,

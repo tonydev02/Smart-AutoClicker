@@ -22,6 +22,13 @@
     </string-array>
 
     <string name="field_multi_touch_area_title">Touch %1$d area</string>
+    <string name="item_random_movement_title">Random movement</string>
+    <string name="item_random_movement_desc">Move one finger randomly inside a selected area</string>
+    <string name="item_random_movement_details">%1$s in area %2$d, %3$d - %4$d, %5$d; endpoint %6$s</string>
+    <string name="item_random_movement_details_invalid">Random movement</string>
+    <string name="field_random_movement_duration">Duration (ms)</string>
+    <string name="field_random_movement_area">Movement area</string>
+    <string name="field_random_movement_end">End position</string>
     <!-- Generic =================================================================================================== -->
     <!-- Those values are shared between several dialogs due to their generic meaning, such as name or formatting -->
 

@@ -68,6 +68,7 @@ class ActionTypeSelectionDialog(
             ActionTypeChoice.Copy,
             ActionTypeChoice.Intent,
             ActionTypeChoice.MultiTouch,
+            ActionTypeChoice.RandomMovement,
             ActionTypeChoice.Notification,
             ActionTypeChoice.Pause,
             ActionTypeChoice.SetText,

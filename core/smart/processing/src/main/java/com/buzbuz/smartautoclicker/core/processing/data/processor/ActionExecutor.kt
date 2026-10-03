@@ -41,6 +41,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
@@ -101,6 +102,7 @@ internal class ActionExecutor(
             when (action) {
                 is Click -> executeClick(event, action, results)
                 is MultiTouch -> executeMultiTouch(action)
+                is RandomMovement -> executeRandomMovement(action)
                 is Swipe -> executeSwipe(action)
                 is Pause -> executePause(action)
                 is Intent -> executeIntent(action)
@@ -188,6 +190,24 @@ internal class ActionExecutor(
         val gesture = GestureDescription.Builder()
             .addRandomizedStroke(first.toPath(randomAreaRandom), firstDuration, startTime = 0L, random = random)
             .addRandomizedStroke(second.toPath(randomAreaRandom), secondDuration, startTime = 0L, random = random)
+            .build()
+
+        withContext(Dispatchers.Main) {
+            androidExecutor.dispatchGesture(gesture)
+        }
+    }
+
+    private suspend fun executeRandomMovement(action: RandomMovement) {
+        if (!action.isComplete()) return
+        val area = action.area ?: return
+        val durationMs = action.durationMs ?: return
+        val gesture = GestureDescription.Builder()
+            .addRandomizedStroke(
+                path = generateRandomAreaPath(area, durationMs, randomAreaRandom, action.endPosition),
+                durationMs = durationMs,
+                startTime = 0L,
+                random = random,
+            )
             .build()
 
         withContext(Dispatchers.Main) {

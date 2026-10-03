@@ -31,7 +31,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
-import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import android.graphics.Rect
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
@@ -43,6 +43,7 @@ internal fun Action.toEntity(): ActionEntity {
     return when (this) {
         is Click -> toClickEntity()
         is MultiTouch -> toMultiTouchEntity()
+        is RandomMovement -> toRandomMovementEntity()
         is Swipe -> toSwipeEntity()
         is Pause -> toPauseEntity()
         is Intent -> toIntentEntity()
@@ -84,6 +85,22 @@ private fun Swipe.toSwipeEntity(): ActionEntity =
         toY = to?.y,
     )
 
+
+private fun RandomMovement.toRandomMovementEntity(): ActionEntity =
+    ActionEntity(
+        id = id.databaseId,
+        eventId = eventId.databaseId,
+        priority = priority,
+        name = name!!,
+        type = ActionType.RANDOM_MOVEMENT,
+        randomAreaLeft = area!!.left,
+        randomAreaTop = area.top,
+        randomAreaRight = area.right,
+        randomAreaBottom = area.bottom,
+        randomAreaDuration = durationMs,
+        randomAreaEndX = endPosition?.x,
+        randomAreaEndY = endPosition?.y,
+    )
 private fun MultiTouch.toMultiTouchEntity(): ActionEntity =
     ActionEntity(
         id = id.databaseId,

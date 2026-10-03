@@ -43,8 +43,9 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setText
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
 import com.buzbuz.smartautoclicker.core.ui.utils.MinMaxInputFilter
 import com.buzbuz.smartautoclicker.core.ui.views.itembrief.renderers.SwipeDescription
-import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 import com.buzbuz.smartautoclicker.core.ui.views.itembrief.renderers.ClickDescription
+import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.multitouch.RandomAreaSelectorMenu
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.DialogConfigActionMultiTouchBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.di.ScenarioConfigViewModelsEntryPoint
@@ -244,7 +245,7 @@ class MultiTouchDialog(
         if (stroke.mode == TouchMode.RANDOM_AREA) {
             overlayManager.navigateTo(
                 context = context,
-                newOverlay = MultiTouchAreaSelectorMenu(stroke.area) { viewModel.setArea(firstTouch, it) },
+                newOverlay = RandomAreaSelectorMenu(stroke.area) { viewModel.setArea(firstTouch, it) },
                 hideCurrent = true,
             )
         } else {

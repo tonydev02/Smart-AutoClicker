@@ -27,6 +27,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.SetText
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
@@ -54,11 +55,12 @@ internal fun Action.getIconRes(): Int = when (this) {
     is Click -> getClickIconRes()
     is Swipe -> getSwipeIconRes()
     is MultiTouch -> getMultiTouchIconRes()
-    is Pause -> getPauseIconRes()
+    is RandomMovement -> getRandomMovementIconRes()
     is Intent -> getIntentIconRes()
     is ToggleEvent -> getToggleEventIconRes()
     is ChangeCounter -> getChangeCounterIconRes()
     is Notification -> getNotificationIconRes()
+    is Pause -> getPauseIconRes()
     is SystemAction -> getSystemActionIconRes()
     is SetText -> getSetTextIconRes()
 }
@@ -67,11 +69,12 @@ internal fun Action.getActionDescription(context: Context, parent: Event?, inErr
     is Click -> getDescription(context, parent, inError)
     is Swipe -> getDescription(context, inError)
     is MultiTouch -> getDescription(context, inError)
-    is Pause -> getDescription(context, inError)
+    is RandomMovement -> getDescription(context, inError)
     is Intent -> getDescription(context, inError)
     is ToggleEvent -> getDescription(context, inError)
     is ChangeCounter -> getDescription(context, inError)
     is Notification -> getDescription(context, inError)
+    is Pause -> getDescription(context, inError)
     is SystemAction -> getDescription(context, inError)
     is SetText -> getDescription(context, inError)
 }

@@ -32,6 +32,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Action
 import com.buzbuz.smartautoclicker.core.domain.model.action.Click
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
@@ -255,6 +256,41 @@ class ActionExecutorTests {
         assertEquals(25L, gesture.getStroke(0).duration)
         assertEquals(50L, gesture.getStroke(1).duration)
     }
+    @Test
+    fun execute_randomMovement_dispatchesOneStrokeWithAreaIndependentRandomness() = runTest {
+        val captor = argumentCaptor<GestureDescription>()
+        val actions = listOf(
+            RandomMovement(Identifier(databaseId = 40), TEST_EVENT_ID, TEST_NAME, 0, Rect(10, 20, 50, 60), 3_000L),
+            RandomMovement(Identifier(databaseId = 41), TEST_EVENT_ID, TEST_NAME, 1, Rect(0, 0, 1, 1), 3_000L, Point(500, 200)),
+            RandomMovement(Identifier(databaseId = 42), TEST_EVENT_ID, TEST_NAME, 2, Rect(0, 0, 1, 20), 3_000L),
+        )
+        actions.forEach { action ->
+            ActionExecutor(mockAndroidExecutor, mockProcessingState, randomize = false)
+                .executeActions(getNewDefaultEvent(actions = listOf(action)), ConditionsResults())
+        }
+        verify(mockAndroidExecutor, times(actions.size)).dispatchGesture(captor.capture())
+        captor.allValues.forEach { gesture ->
+            assertEquals(1, gesture.strokeCount)
+            assertEquals(0L, gesture.getStroke(0).startTime)
+            assertEquals(3_000L, gesture.getStroke(0).duration)
+        }
+    }
+
+    @Test
+    fun execute_randomMovementRetainsScenarioDurationRandomization() = runTest {
+        val action = RandomMovement(
+            Identifier(databaseId = 43), TEST_EVENT_ID, TEST_NAME, 0, Rect(0, 0, 20, 20), 3_000L,
+        )
+        ActionExecutor(mockAndroidExecutor, mockProcessingState, randomize = true)
+            .executeActions(getNewDefaultEvent(actions = listOf(action)), ConditionsResults())
+
+        val captor = argumentCaptor<GestureDescription>()
+        verify(mockAndroidExecutor, times(1)).dispatchGesture(captor.capture())
+        assertEquals(1, captor.lastValue.strokeCount)
+        assertEquals(0L, captor.lastValue.getStroke(0).startTime)
+        assertTrue(captor.lastValue.getStroke(0).duration in 2_995L..3_005L)
+    }
+
     @Test
     fun execute_multiTouchModeCombinations_stillDispatchExactlyOneTwoStrokeGesture() = runTest {
         val combinations = listOf(
