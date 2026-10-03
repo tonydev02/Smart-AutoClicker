@@ -32,7 +32,14 @@ internal class MultiTouchAreaSelectorMenu(
 
     override fun onStart() {
         super.onStart()
-        val area = initialArea?.takeUnless(Rect::isEmpty) ?: Rect(0, 0, 128, 128)
+        val area = initialArea?.takeUnless(Rect::isEmpty) ?: run {
+            val displaySize = displayConfigManager.displayConfig.sizePx
+            val width = 128.coerceAtMost(displaySize.x)
+            val height = 128.coerceAtMost(displaySize.y)
+            val left = (displaySize.x - width) / 2
+            val top = (displaySize.y - height) / 2
+            Rect(left, top, left + width, top + height)
+        }
         selector.setSelection(Rect(area), Rect(0, 0, 1, 1))
     }
 

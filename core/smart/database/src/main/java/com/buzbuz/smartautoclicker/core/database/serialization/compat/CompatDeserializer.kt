@@ -477,7 +477,7 @@ internal open class CompatDeserializer : Deserializer {
     ): ActionEntity? =
         when (deserializeActionType(jsonAction)) {
             ActionType.CLICK -> deserializeActionClick(jsonAction, eventConditions, conditionsOperator)
-            ActionType.MULTI_TOUCH -> null
+            ActionType.MULTI_TOUCH -> deserializeActionMultiTouch(jsonAction)
             ActionType.SWIPE -> deserializeActionSwipe(jsonAction)
             ActionType.PAUSE -> deserializeActionPause(jsonAction)
             ActionType.INTENT -> deserializeActionIntent(jsonAction)
@@ -570,6 +570,40 @@ internal open class CompatDeserializer : Deserializer {
             swipeDuration = jsonSwipe.getLong("swipeDuration")
                 ?.coerceIn(DURATION_LOWER_BOUND..DURATION_GESTURE_UPPER_BOUND)
                 ?: DEFAULT_SWIPE_DURATION,
+        )
+    }
+
+    @VisibleForTesting(otherwise = VisibleForTesting.PROTECTED)
+    open fun deserializeActionMultiTouch(jsonMultiTouch: JsonObject): ActionEntity? {
+        val id = jsonMultiTouch.getLong("id", true) ?: return null
+        val eventId = jsonMultiTouch.getLong("eventId", true) ?: return null
+        val firstTouchFromX = jsonMultiTouch.getInt("firstTouchFromX", true) ?: return null
+        val firstTouchFromY = jsonMultiTouch.getInt("firstTouchFromY", true) ?: return null
+        val firstTouchToX = jsonMultiTouch.getInt("firstTouchToX", true) ?: return null
+        val firstTouchToY = jsonMultiTouch.getInt("firstTouchToY", true) ?: return null
+        val firstTouchDuration = jsonMultiTouch.getLong("firstTouchDuration", true) ?: return null
+        val secondTouchFromX = jsonMultiTouch.getInt("secondTouchFromX", true) ?: return null
+        val secondTouchFromY = jsonMultiTouch.getInt("secondTouchFromY", true) ?: return null
+        val secondTouchToX = jsonMultiTouch.getInt("secondTouchToX", true) ?: return null
+        val secondTouchToY = jsonMultiTouch.getInt("secondTouchToY", true) ?: return null
+        val secondTouchDuration = jsonMultiTouch.getLong("secondTouchDuration", true) ?: return null
+
+        return ActionEntity(
+            id = id,
+            eventId = eventId,
+            name = jsonMultiTouch.getString("name") ?: "",
+            priority = jsonMultiTouch.getInt("priority")?.coerceAtLeast(0) ?: 0,
+            type = ActionType.MULTI_TOUCH,
+            firstTouchFromX = firstTouchFromX,
+            firstTouchFromY = firstTouchFromY,
+            firstTouchToX = firstTouchToX,
+            firstTouchToY = firstTouchToY,
+            firstTouchDuration = firstTouchDuration,
+            secondTouchFromX = secondTouchFromX,
+            secondTouchFromY = secondTouchFromY,
+            secondTouchToX = secondTouchToX,
+            secondTouchToY = secondTouchToY,
+            secondTouchDuration = secondTouchDuration,
         )
     }
 

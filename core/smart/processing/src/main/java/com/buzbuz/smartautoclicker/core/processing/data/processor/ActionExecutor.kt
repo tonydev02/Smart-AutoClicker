@@ -194,7 +194,7 @@ internal class ActionExecutor(
     }
 
     private fun TouchStroke.toPath(areaRandom: Random): Path = when (mode) {
-        TouchMode.PRESS -> Path().apply { moveTo(from!!, null) }
+        TouchMode.PRESS -> Path().apply { moveTo(from!!, random) }
         TouchMode.DRAG -> Path().apply { line(from, to, random) }
         TouchMode.RANDOM_AREA -> generateRandomAreaPath(area!!, durationMs!!, areaRandom)
     }

@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.core.database.serialization.compat
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
+import com.buzbuz.smartautoclicker.core.database.entity.ActionType
 import com.buzbuz.smartautoclicker.core.database.entity.ConditionType
 import com.buzbuz.smartautoclicker.core.database.entity.CounterComparisonOperation
 
@@ -32,7 +33,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** Tests for bounds-clamping logic in [CompatDeserializer]. */
+/** Tests for compatibility deserialization in [CompatDeserializer]. */
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [Build.VERSION_CODES.Q])
 class CompatDeserializerTests {
@@ -182,5 +183,45 @@ class CompatDeserializerTests {
 
         assertNotNull(result)
         assertEquals(4, result!!.threshold)
+    }
+
+    @Test
+    fun deserializeAction_multiTouchFromV24_preservesDragStrokes() {
+        val json = JsonObject(
+            mapOf(
+                "id" to JsonPrimitive(1L),
+                "eventId" to JsonPrimitive(2L),
+                "name" to JsonPrimitive("legacy multitouch"),
+                "priority" to JsonPrimitive(3),
+                "type" to JsonPrimitive(ActionType.MULTI_TOUCH.name),
+                "firstTouchFromX" to JsonPrimitive(11),
+                "firstTouchFromY" to JsonPrimitive(12),
+                "firstTouchToX" to JsonPrimitive(13),
+                "firstTouchToY" to JsonPrimitive(14),
+                "firstTouchDuration" to JsonPrimitive(150L),
+                "secondTouchFromX" to JsonPrimitive(21),
+                "secondTouchFromY" to JsonPrimitive(22),
+                "secondTouchToX" to JsonPrimitive(23),
+                "secondTouchToY" to JsonPrimitive(24),
+                "secondTouchDuration" to JsonPrimitive(250L),
+            )
+        )
+
+        val result = deserializer.deserializeAction(json, emptyList(), 1)
+
+        assertNotNull(result)
+        assertEquals(ActionType.MULTI_TOUCH, result!!.type)
+        assertEquals(11, result.firstTouchFromX)
+        assertEquals(12, result.firstTouchFromY)
+        assertEquals(13, result.firstTouchToX)
+        assertEquals(14, result.firstTouchToY)
+        assertEquals(150L, result.firstTouchDuration)
+        assertEquals(21, result.secondTouchFromX)
+        assertEquals(22, result.secondTouchFromY)
+        assertEquals(23, result.secondTouchToX)
+        assertEquals(24, result.secondTouchToY)
+        assertEquals(250L, result.secondTouchDuration)
+        assertNull(result.firstTouchMode)
+        assertNull(result.secondTouchMode)
     }
 }
