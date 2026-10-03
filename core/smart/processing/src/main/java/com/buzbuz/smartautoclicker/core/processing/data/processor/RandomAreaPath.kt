@@ -33,13 +33,19 @@ internal fun generateRandomAreaPoints(area: Rect, durationMs: Long, random: Rand
     return points
 }
 
-internal fun generateRandomAreaPath(area: Rect, durationMs: Long, random: Random): Path {
+internal fun generateRandomAreaPath(
+    area: Rect,
+    durationMs: Long,
+    random: Random,
+    finalPoint: Point? = null,
+): Path {
     val points = generateRandomAreaPoints(area, durationMs, random)
     return Path().apply {
         moveTo(points[0].x.toFloat(), points[0].y.toFloat())
         for (index in 1 until points.size) {
             lineTo(points[index].x.toFloat(), points[index].y.toFloat())
         }
+        finalPoint?.let { lineTo(it.x.toFloat(), it.y.toFloat()) }
     }
 }
 

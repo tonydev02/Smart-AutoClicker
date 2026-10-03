@@ -135,6 +135,77 @@ class ActionMapperTests {
             assertEquals(9L, action.copyBase(id = 9L.asIdentifier()).id.databaseId)
         }
     }
+
+    @Test
+    fun multiTouch_endpointRoundTripsAndDeepCopies() {
+        val endpoint = Point(120, -25)
+        val area = TouchStroke(
+            durationMs = 400L,
+            mode = TouchMode.RANDOM_AREA,
+            area = Rect(0, 0, 20, 20),
+            randomAreaEnd = endpoint,
+        )
+        val action = MultiTouch(
+            id = 11L.asIdentifier(),
+            eventId = 12L.asIdentifier(),
+            name = "Endpoints",
+            priority = 0,
+            firstTouch = area,
+            secondTouch = area.copy(randomAreaEnd = Point(9, 10)),
+        )
+        assertTrue(area.isComplete())
+        val restored = CompleteActionEntity(action.toEntity(), emptyList(), emptyList()).toDomain() as MultiTouch
+        assertEquals(Point(120, -25), restored.firstTouch.randomAreaEnd)
+        assertEquals(Point(9, 10), restored.secondTouch.randomAreaEnd)
+        assertNotSame(endpoint, action.deepCopy().firstTouch.randomAreaEnd)
+        assertEquals(
+            action.copy(firstTouch = area.copy(randomAreaEnd = null)),
+            CompleteActionEntity(
+                action.copy(firstTouch = area.copy(randomAreaEnd = null)).toEntity(),
+                emptyList(),
+                emptyList(),
+            ).toDomain(),
+        )
+    }
+
+    @Test
+    fun pause_randomRangeRoundTripsAndLegacyEntityDefaultsToFixed() {
+        val pause = Pause(
+            id = 1L.asIdentifier(),
+            eventId = 2L.asIdentifier(),
+            name = "Range",
+            priority = 0,
+            pauseMode = PauseMode.RANDOM_RANGE,
+            randomMinDurationMs = 700L,
+            randomMaxDurationMs = 1800L,
+        )
+        assertTrue(pause.isComplete())
+        assertEquals(pause, CompleteActionEntity(pause.toEntity(), emptyList(), emptyList()).toDomain())
+        val legacy = ActionTestsData.getNewPauseEntity(eventId = 2L).copy(
+            action = ActionTestsData.getNewPauseEntity(eventId = 2L).action.copy(pauseMode = null),
+        )
+        val restored = legacy.toDomain() as Pause
+        assertEquals(PauseMode.FIXED, restored.pauseMode)
+        assertEquals(500L, restored.pauseDuration)
+        assertFalse(pause.copy(randomMinDurationMs = null).isComplete())
+        assertFalse(pause.copy(randomMaxDurationMs = null).isComplete())
+        assertFalse(pause.copy(randomMinDurationMs = 0L).isComplete())
+        assertFalse(pause.copy(randomMaxDurationMs = -1L).isComplete())
+        assertFalse(pause.copy(randomMinDurationMs = 1801L).isComplete())
+        assertTrue(pause.copy(randomMinDurationMs = 700L, randomMaxDurationMs = 700L).isComplete())
+
+        val fixed = pause.copy(
+            pauseDuration = 1_000L,
+            pauseMode = PauseMode.FIXED,
+            randomMinDurationMs = null,
+            randomMaxDurationMs = null,
+        )
+        assertTrue(fixed.isComplete())
+        assertFalse(fixed.copy(pauseDuration = null).isComplete())
+        assertFalse(fixed.copy(pauseDuration = 0L).isComplete())
+        assertFalse(pause.copy(randomMinDurationMs = -1L).isComplete())
+        assertFalse(pause.copy(randomMaxDurationMs = 0L).isComplete())
+    }
     @Test
     fun multiTouch_roundTripsIndependentTouchModes() {
         val press = TouchStroke(from = Point(1, 1), durationMs = 10L, mode = TouchMode.PRESS)

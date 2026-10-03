@@ -27,7 +27,8 @@
 
 ## Key Features:
 * **Click and Swipes**: Automate clicks and swipes with precision by configuring press durations, swipe durations, and positions. Trigger actions on detected images to interact seamlessly with dynamic elements.
-* **Multi-touch Actions**: Configure two-finger presses, drags, or random-area movement as a single simultaneous action.
+* **Multi-touch Actions**: Configure two-finger presses, drags, or random-area movement with optional end positions for each finger.
+* **Randomized Pauses**: Set pause actions to a fixed duration or an inclusive random duration range.
 * **Advanced Automation**: Enhance your automation scripts with advanced features like counters operations, Android Intents, and flow control, giving you unparalleled flexibility.
 * **Triggers**: Set up sophisticated triggers based on image detection, timers, counters, and Android broadcast receivers to perfectly tailor your automation tasks.
 * **Regular Mode**: Enjoy a straightforward auto-clicking experience with our Regular Mode, designed for easy configuration and ideal for simpler, repetitive tasks.

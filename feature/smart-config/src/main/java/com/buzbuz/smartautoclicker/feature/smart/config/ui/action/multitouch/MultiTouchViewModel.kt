@@ -65,12 +65,16 @@ class MultiTouchViewModel @Inject constructor(
             firstPositionsDescription = action.firstTouch.positionsDescription(),
             firstPositionsError = !action.firstTouch.hasSelection(),
             firstAreaMode = action.firstTouch.mode == TouchMode.RANDOM_AREA,
+            firstEndSpecific = action.firstTouch.randomAreaEnd != null,
+            firstEndDescription = action.firstTouch.endPositionDescription(),
             secondMode = action.secondTouch.mode.ordinal,
             secondDuration = action.secondTouch.durationMs?.toString(),
             secondDurationError = !action.secondTouch.hasValidDuration(),
             secondPositionsDescription = action.secondTouch.positionsDescription(),
             secondPositionsError = !action.secondTouch.hasSelection(),
             secondAreaMode = action.secondTouch.mode == TouchMode.RANDOM_AREA,
+            secondEndSpecific = action.secondTouch.randomAreaEnd != null,
+            secondEndDescription = action.secondTouch.endPositionDescription(),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
@@ -95,10 +99,14 @@ class MultiTouchViewModel @Inject constructor(
 
     fun setMode(firstTouch: Boolean, mode: TouchMode) = updateStroke(firstTouch) { stroke ->
         when (mode) {
-            TouchMode.PRESS -> stroke.copy(mode = mode, to = null, area = null)
-            TouchMode.DRAG -> stroke.copy(mode = mode, area = null)
+            TouchMode.PRESS -> stroke.copy(mode = mode, to = null, area = null, randomAreaEnd = null)
+            TouchMode.DRAG -> stroke.copy(mode = mode, area = null, randomAreaEnd = null)
             TouchMode.RANDOM_AREA -> stroke.copy(mode = mode, from = null, to = null)
         }
+    }
+
+    fun setRandomAreaEnd(firstTouch: Boolean, end: Point?) = updateStroke(firstTouch) {
+        it.copy(randomAreaEnd = end)
     }
 
     private fun updateStroke(firstTouch: Boolean, update: (TouchStroke) -> TouchStroke) =
@@ -133,4 +141,8 @@ class MultiTouchViewModel @Inject constructor(
         }
         TouchMode.RANDOM_AREA -> area?.toString() ?: context.getString(R.string.generic_select_the_position)
     }
+
+    private fun TouchStroke.endPositionDescription(): String =
+        randomAreaEnd?.let { context.getString(R.string.field_multi_touch_positions_desc, it.x, it.y, it.x, it.y) }
+            ?: context.getString(R.string.generic_select_the_position)
 }

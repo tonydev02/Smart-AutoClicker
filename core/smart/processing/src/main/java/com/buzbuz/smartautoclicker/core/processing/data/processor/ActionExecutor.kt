@@ -43,6 +43,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.ChangeCounter
 import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
@@ -78,6 +79,7 @@ internal class ActionExecutor(
         if (randomize) Random(System.currentTimeMillis()) else null
 
     private val randomAreaRandom: Random = Random(System.nanoTime())
+    private val pauseRangeRandom: Random = Random(System.nanoTime())
     private val unblockGestureScheduler: UnblockGestureScheduler? =
         if (unblockWorkaroundEnabled) UnblockGestureScheduler()
         else null
@@ -196,7 +198,7 @@ internal class ActionExecutor(
     private fun TouchStroke.toPath(areaRandom: Random): Path = when (mode) {
         TouchMode.PRESS -> Path().apply { moveTo(from!!, random) }
         TouchMode.DRAG -> Path().apply { line(from, to, random) }
-        TouchMode.RANDOM_AREA -> generateRandomAreaPath(area!!, durationMs!!, areaRandom)
+        TouchMode.RANDOM_AREA -> generateRandomAreaPath(area!!, durationMs!!, areaRandom, randomAreaEnd)
     }
 
     /**
@@ -204,7 +206,15 @@ internal class ActionExecutor(
      * @param pause the pause to be executed.
      */
     private suspend fun executePause(pause: Pause) {
-        delay(pause.pauseDuration!!.getPauseDurationMs(random))
+        val duration = when (pause.pauseMode) {
+            PauseMode.FIXED -> pause.pauseDuration!!.getPauseDurationMs(random)
+            PauseMode.RANDOM_RANGE -> selectRandomPauseDuration(
+                pause.randomMinDurationMs!!,
+                pause.randomMaxDurationMs!!,
+                pauseRangeRandom,
+            )
+        }
+        delay(duration)
     }
 
     /**

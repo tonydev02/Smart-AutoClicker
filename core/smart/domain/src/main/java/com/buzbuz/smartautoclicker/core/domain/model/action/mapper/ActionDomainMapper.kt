@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.domain.model.action.intent.toDomainIntentExtra
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.toDomain
 
@@ -66,6 +67,7 @@ private fun CompleteActionEntity.toDomainMultiTouch(cleanIds: Boolean = false) =
         durationMs = action.firstTouchDuration,
         mode = action.firstTouchMode?.let { runCatching { TouchMode.valueOf(it) }.getOrNull() } ?: TouchMode.DRAG,
         area = getRectIfValid(action.firstTouchAreaLeft, action.firstTouchAreaTop, action.firstTouchAreaRight, action.firstTouchAreaBottom),
+        randomAreaEnd = getPositionIfValid(action.firstTouchRandomEndX, action.firstTouchRandomEndY),
     ),
     secondTouch = TouchStroke(
         from = getPositionIfValid(action.secondTouchFromX, action.secondTouchFromY),
@@ -73,6 +75,7 @@ private fun CompleteActionEntity.toDomainMultiTouch(cleanIds: Boolean = false) =
         durationMs = action.secondTouchDuration,
         mode = action.secondTouchMode?.let { runCatching { TouchMode.valueOf(it) }.getOrNull() } ?: TouchMode.DRAG,
         area = getRectIfValid(action.secondTouchAreaLeft, action.secondTouchAreaTop, action.secondTouchAreaRight, action.secondTouchAreaBottom),
+        randomAreaEnd = getPositionIfValid(action.secondTouchRandomEndX, action.secondTouchRandomEndY),
     ),
 )
 
@@ -91,7 +94,10 @@ private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false) = Paus
     eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
     name = action.name,
     priority = action.priority,
-    pauseDuration = action.pauseDuration!!,
+    pauseDuration = action.pauseDuration,
+    pauseMode = action.pauseMode?.let { runCatching { PauseMode.valueOf(it) }.getOrNull() } ?: PauseMode.FIXED,
+    randomMinDurationMs = action.pauseRandomMinDuration,
+    randomMaxDurationMs = action.pauseRandomMaxDuration,
 )
 
 private fun CompleteActionEntity.toDomainIntent(cleanIds: Boolean = false) = Intent(

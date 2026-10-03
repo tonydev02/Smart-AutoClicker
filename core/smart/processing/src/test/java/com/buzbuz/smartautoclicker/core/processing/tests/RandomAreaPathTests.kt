@@ -1,8 +1,10 @@
 package com.buzbuz.smartautoclicker.core.processing.tests
 
 import android.graphics.Rect
+import android.graphics.Point
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.buzbuz.smartautoclicker.core.processing.data.processor.generateRandomAreaPath
+import com.buzbuz.smartautoclicker.core.processing.data.processor.selectRandomPauseDuration
 import com.buzbuz.smartautoclicker.core.processing.data.processor.generateRandomAreaPoints
 import kotlin.random.Random
 import org.junit.Assert.assertEquals
@@ -39,6 +41,44 @@ class RandomAreaPathTests {
                 assertFalse(generateRandomAreaPath(area, duration, Random(seed)).isEmpty)
             }
         }
+    }
+
+    @Test
+    fun optionalEndpointIsLastAndDoesNotChangeRandomWaypoints() {
+        val area = Rect(10, 20, 30, 40)
+        val randomPoints = generateRandomAreaPoints(area, 800L, Random(7))
+        val outside = Point(500, -40)
+        val path = generateRandomAreaPath(area, 800L, Random(7), outside)
+        val coordinates = path.approximate(0.1f)
+        assertEquals((randomPoints.size + 1) * 3, coordinates.size)
+        randomPoints.forEachIndexed { index, point ->
+            assertEquals(point.x.toFloat(), coordinates[index * 3 + 1], 0f)
+            assertEquals(point.y.toFloat(), coordinates[index * 3 + 2], 0f)
+        }
+        assertEquals(outside.x.toFloat(), coordinates[coordinates.lastIndex - 1], 0f)
+        assertEquals(outside.y.toFloat(), coordinates.last(), 0f)
+        assertEquals(
+            generateRandomAreaPath(area, 800L, Random(7)).approximate(0.1f).toList(),
+            generateRandomAreaPath(area, 800L, Random(7), null).approximate(0.1f).toList(),
+        )
+        assertFalse(generateRandomAreaPath(Rect(0, 0, 1, 1), 1L, Random(1), Point(0, 0)).isEmpty)
+        assertFalse(generateRandomAreaPath(area, 800L, Random(7), randomPoints.first()).isEmpty)
+        assertFalse(generateRandomAreaPath(area, 800L, Random(7), randomPoints.last()).isEmpty)
+    }
+
+    @Test
+    fun randomPauseDurationUsesInclusiveBoundsAndHandlesLongExtremes() {
+        val random = Random(55)
+        repeat(2_000) {
+            val result = selectRandomPauseDuration(700L, 1_800L, random)
+            assertTrue(result in 700L..1_800L)
+        }
+        assertEquals(Long.MAX_VALUE, selectRandomPauseDuration(Long.MAX_VALUE, Long.MAX_VALUE, random))
+        repeat(100) {
+            assertTrue(selectRandomPauseDuration(Long.MAX_VALUE - 20L, Long.MAX_VALUE, random) in (Long.MAX_VALUE - 20L)..Long.MAX_VALUE)
+        }
+        val results = (0 until 100).map { selectRandomPauseDuration(1L, 100L, Random(it)) }.toSet()
+        assertTrue(results.size > 1)
     }
 
     @Test

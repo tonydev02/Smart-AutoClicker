@@ -50,13 +50,14 @@ enum class TouchMode {
     RANDOM_AREA,
 }
 
-/** Configuration for one finger in a [MultiTouch] action. */
+/** Configuration for one finger in a [MultiTouch] action; [randomAreaEnd] applies only to RANDOM_AREA. */
 data class TouchStroke(
     val from: Point? = null,
     val to: Point? = null,
     val durationMs: Long?,
     val mode: TouchMode = TouchMode.DRAG,
     val area: Rect? = null,
+    val randomAreaEnd: Point? = null,
 ) {
     fun isComplete(): Boolean {
         if (durationMs == null || durationMs !in 1..GESTURE_DURATION_MAX_VALUE) return false
@@ -71,5 +72,6 @@ data class TouchStroke(
         from = from?.let(::Point),
         to = to?.let(::Point),
         area = area?.let(::Rect),
+        randomAreaEnd = randomAreaEnd?.let(::Point),
     )
 }

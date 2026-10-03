@@ -25,6 +25,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.TimeUnitDropDownItem
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.findAppropriateTimeUnit
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.formatDuration
@@ -83,9 +84,14 @@ class PauseViewModel @Inject constructor(
 
     private val _selectedUnitItem: MutableStateFlow<TimeUnitDropDownItem> = MutableStateFlow(
         editionRepository.editionState.getEditedAction<Pause>()?.let { action ->
-            action.pauseDuration.findAppropriateTimeUnit()
+            (action.pauseDuration ?: action.randomMinDurationMs ?: 0L).findAppropriateTimeUnit()
         } ?: TimeUnitDropDownItem.Milliseconds
     )
+
+    private val _selectedMode = MutableStateFlow(
+        editionRepository.editionState.getEditedAction<Pause>()?.pauseMode ?: PauseMode.FIXED,
+    )
+    val selectedMode: Flow<PauseMode> = _selectedMode
     val selectedUnitItem: Flow<TimeUnitDropDownItem> = _selectedUnitItem
 
     /** The duration of the pause in milliseconds. */
@@ -97,6 +103,12 @@ class PauseViewModel @Inject constructor(
         }
     /** Tells if the pause duration value is valid or not. */
     val pauseDurationError: Flow<Boolean> = configuredPause.map { (it.pauseDuration ?: -1) <= 0 }
+    val randomMinDuration: Flow<String?> = _selectedUnitItem.flatMapLatest { unit ->
+        configuredPause.map { pause -> pause.randomMinDurationMs?.let(unit::formatDuration) }.take(1)
+    }
+    val randomMaxDuration: Flow<String?> = _selectedUnitItem.flatMapLatest { unit ->
+        configuredPause.map { pause -> pause.randomMaxDurationMs?.let(unit::formatDuration) }.take(1)
+    }
 
     /** Tells if the configured pause is valid and can be saved. */
     val isValidAction: Flow<Boolean> = editionRepository.editionState.editedActionState
@@ -127,6 +139,24 @@ class PauseViewModel @Inject constructor(
             if (oldPause.pauseDuration != newDurationMs) {
                 editionRepository.updateEditedAction(oldPause.copy(pauseDuration = newDurationMs))
             }
+        }
+    }
+    fun setPauseMode(mode: PauseMode) {
+        _selectedMode.value = mode
+        editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
+            if (pause.pauseMode != mode) editionRepository.updateEditedAction(pause.copy(pauseMode = mode))
+        }
+    }
+
+    fun setRandomMinDuration(duration: Long?) = updateRandomDuration(duration, true)
+    fun setRandomMaxDuration(duration: Long?) = updateRandomDuration(duration, false)
+
+    private fun updateRandomDuration(duration: Long?, isMinimum: Boolean) {
+        editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
+            val durationMs = duration.toDurationMs(_selectedUnitItem.value)
+            val updated = if (isMinimum) pause.copy(randomMinDurationMs = durationMs)
+            else pause.copy(randomMaxDurationMs = durationMs)
+            editionRepository.updateEditedAction(updated)
         }
     }
 

@@ -374,6 +374,22 @@
     <string name="field_multi_touch_first_duration">Touch 1 duration (ms)</string>
     <string name="field_multi_touch_second_duration">Touch 2 duration (ms)</string>
     <string name="field_multi_touch_positions_title">Touch %1$d positions</string>
+    <string name="field_multi_touch_end_position">End position</string>
+    <string name="field_multi_touch_end_anywhere">Anywhere</string>
+    <string name="field_multi_touch_end_specific">Specific position</string>
+    <string name="field_pause_type">Wait type</string>
+    <string name="field_pause_fixed">Fixed</string>
+    <string name="field_pause_random_range">Random range</string>
+    <string name="field_pause_minimum">Minimum</string>
+    <string name="field_pause_maximum">Maximum</string>
+    <string-array name="multi_touch_end_modes">
+        <item>@string/field_multi_touch_end_anywhere</item>
+        <item>@string/field_multi_touch_end_specific</item>
+    </string-array>
+    <string-array name="pause_modes">
+        <item>@string/field_pause_fixed</item>
+        <item>@string/field_pause_random_range</item>
+    </string-array>
     <string name="field_multi_touch_positions_desc">From %1$d, %2$d to %3$d, %4$d</string>
 
     <string name="field_swipe_positions_title">Swipe positions</string>

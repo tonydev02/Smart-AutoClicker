@@ -35,6 +35,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ActionExecutor
@@ -269,7 +270,12 @@ class ActionExecutorTests {
             fun stroke(mode: TouchMode, start: Point, end: Point, duration: Long) = when (mode) {
                 TouchMode.PRESS -> TouchStroke(from = start, durationMs = duration, mode = mode)
                 TouchMode.DRAG -> TouchStroke(from = start, to = end, durationMs = duration, mode = mode)
-                TouchMode.RANDOM_AREA -> TouchStroke(durationMs = duration, mode = mode, area = Rect(0, 0, 120, 100))
+                TouchMode.RANDOM_AREA -> TouchStroke(
+                    durationMs = duration,
+                    mode = mode,
+                    area = Rect(0, 0, 120, 100),
+                    randomAreaEnd = Point(140, 120),
+                )
             }
             val first = stroke(firstMode, Point(1, 2), Point(30, 40), 25L)
             val second = stroke(secondMode, Point(50, 60), Point(70, 80), 50L)
@@ -308,6 +314,38 @@ class ActionExecutorTests {
 
         // Only a pause, there should be no gestures
         verify(mockAndroidExecutor, never()).dispatchGesture(anyNotNull())
+    }
+
+    @Test
+    fun execute_fixedPauseKeepsScenarioRandomizationBehavior() = runTest {
+        suspend fun elapsed(randomize: Boolean, pause: Pause): Long {
+            val start = testScheduler.currentTime
+            val executor = ActionExecutor(mockAndroidExecutor, mockProcessingState, randomize = randomize)
+            executor.executeActions(getNewDefaultEvent(actions = listOf(pause)), ConditionsResults())
+            return testScheduler.currentTime - start
+        }
+        val fixed = getNewDefaultPause(20)
+        assertEquals(TEST_DURATION, elapsed(randomize = false, pause = fixed))
+        assertTrue(elapsed(randomize = true, pause = fixed) in (TEST_DURATION - 5L)..(TEST_DURATION + 5L))
+    }
+
+    @Test
+    fun execute_randomRangePauseStaysWithinConfiguredBoundsWithEitherScenarioSetting() = runTest {
+        val range = Pause(
+            id = Identifier(databaseId = 30L),
+            eventId = TEST_EVENT_ID,
+            name = TEST_NAME,
+            priority = 0,
+            pauseMode = PauseMode.RANDOM_RANGE,
+            randomMinDurationMs = 700L,
+            randomMaxDurationMs = 800L,
+        )
+        for (randomize in listOf(false, true)) {
+            val start = testScheduler.currentTime
+            val executor = ActionExecutor(mockAndroidExecutor, mockProcessingState, randomize = randomize)
+            executor.executeActions(getNewDefaultEvent(actions = listOf(range)), ConditionsResults())
+            assertTrue(testScheduler.currentTime - start in 700L..800L)
+        }
     }
 
     @Test

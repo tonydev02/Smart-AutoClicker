@@ -46,7 +46,24 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toTopOf="@id/edit_pause_duration_layout"/>
+                />
+            <TextView
+                android:id="@+id/pause_mode_label"
+                style="@style/AppTheme.TextAppearance.CardTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/field_pause_type"
+                app:layout_constraintTop_toBottomOf="@id/field_name"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+            <Spinner
+                android:id="@+id/pause_mode_field"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="@dimen/margin_horizontal_small"
+                app:layout_constraintTop_toBottomOf="@id/pause_mode_label"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
 
             <include layout="@layout/include_field_text_input"
                 android:id="@+id/edit_pause_duration_layout"
@@ -55,7 +72,27 @@
                 android:layout_marginVertical="@dimen/margin_horizontal_small"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/time_unit_field"
-                app:layout_constraintTop_toBottomOf="@id/field_name"/>
+                app:layout_constraintTop_toBottomOf="@id/pause_mode_field" />
+
+            <include layout="@layout/include_field_text_input"
+                android:id="@+id/edit_random_min_duration_layout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="@dimen/margin_horizontal_small"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/time_unit_field"
+                app:layout_constraintTop_toBottomOf="@id/pause_mode_field" />
+
+            <include layout="@layout/include_field_text_input"
+                android:id="@+id/edit_random_max_duration_layout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="@dimen/margin_horizontal_small"
+                android:visibility="gone"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toStartOf="@id/time_unit_field"
+                app:layout_constraintTop_toBottomOf="@id/edit_random_min_duration_layout" />
 
             <include layout="@layout/include_input_field_dropdown"
                 android:id="@+id/time_unit_field"
@@ -66,8 +103,7 @@
                 app:layout_constraintStart_toEndOf="@id/edit_pause_duration_layout"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/edit_pause_duration_layout"
-                app:layout_constraintWidth_percent="0.3"/>
-
+                app:layout_constraintWidth_percent="0.3" />
         </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.core.widget.NestedScrollView>

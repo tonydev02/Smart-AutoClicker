@@ -63,6 +63,22 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginVertical="@dimen/margin_vertical_default" />
+                    <TextView
+                        android:id="@+id/field_first_end_position_title"
+                        style="@style/AppTheme.TextAppearance.CardTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/field_multi_touch_end_position" />
+                    <Spinner
+                        android:id="@+id/field_first_end_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <include layout="@layout/include_field_selector"
+                        android:id="@+id/field_first_end_position"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:layout_marginVertical="@dimen/margin_vertical_default" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -99,6 +115,22 @@
                         android:id="@+id/field_second_positions"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:layout_marginVertical="@dimen/margin_vertical_default" />
+                    <TextView
+                        android:id="@+id/field_second_end_position_title"
+                        style="@style/AppTheme.TextAppearance.CardTitle"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="@string/field_multi_touch_end_position" />
+                    <Spinner
+                        android:id="@+id/field_second_end_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                    <include layout="@layout/include_field_selector"
+                        android:id="@+id/field_second_end_position"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
                         android:layout_marginVertical="@dimen/margin_vertical_default" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>

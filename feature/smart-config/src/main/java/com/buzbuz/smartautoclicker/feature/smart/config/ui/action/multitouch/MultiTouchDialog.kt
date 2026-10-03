@@ -98,6 +98,16 @@ class MultiTouchDialog(
             }
             setupModeSelector(fieldFirstMode, true)
             setupModeSelector(fieldSecondMode, false)
+            setupEndModeSelector(fieldFirstEndMode, true)
+            setupEndModeSelector(fieldSecondEndMode, false)
+            fieldFirstEndPosition.apply {
+                setTitle(context.getString(R.string.field_multi_touch_end_position))
+                setOnClickListener { debounceUserInteraction { showEndPositionSelector(true) } }
+            }
+            fieldSecondEndPosition.apply {
+                setTitle(context.getString(R.string.field_multi_touch_end_position))
+                setOnClickListener { debounceUserInteraction { showEndPositionSelector(false) } }
+            }
         }
         hideSoftInputOnFocusLoss(viewBinding.fieldName.textField)
         hideSoftInputOnFocusLoss(viewBinding.fieldFirstDuration.textField)
@@ -148,6 +158,38 @@ class MultiTouchDialog(
             }
         }
     }
+    private fun setupEndModeSelector(spinner: android.widget.Spinner, firstTouch: Boolean) {
+        spinner.adapter = ArrayAdapter.createFromResource(context, R.array.multi_touch_end_modes, android.R.layout.simple_spinner_item).also {
+            it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val action = viewModel.getEditedAction() ?: return
+                val stroke = if (firstTouch) action.firstTouch else action.secondTouch
+                val selected = position == 1
+                if (stroke.mode == TouchMode.RANDOM_AREA && selected != (stroke.randomAreaEnd != null)) {
+                    if (!selected) viewModel.setRandomAreaEnd(firstTouch, null)
+                    else showEndPositionSelector(firstTouch)
+                }
+            }
+        }
+    }
+
+    private fun showEndPositionSelector(firstTouch: Boolean) {
+        val stroke = viewModel.getEditedAction()?.let { if (firstTouch) it.firstTouch else it.secondTouch } ?: return
+        overlayManager.navigateTo(
+            context = context,
+            newOverlay = PositionSelectorMenu(
+                tutorialMonitoringTag = MonitoredOverlayType.MULTI_TOUCH_POSITION.name,
+                itemBriefDescription = ClickDescription(position = stroke.randomAreaEnd?.toPointF(), pressDurationMs = 1L),
+                onConfirm = { selected ->
+                    (selected as ClickDescription).position?.let { viewModel.setRandomAreaEnd(firstTouch, it.toPoint()) }
+                },
+            ),
+            hideCurrent = true,
+        )
+    }
     private fun setupDurationField(field: com.buzbuz.smartautoclicker.core.ui.databinding.IncludeFieldTextInputBinding, firstTouch: Boolean) {
         field.apply {
             textField.filters = arrayOf(MinMaxInputFilter(1, GESTURE_DURATION_MAX_VALUE.toInt()))
@@ -173,6 +215,12 @@ class MultiTouchDialog(
                 else context.getString(R.string.field_multi_touch_positions_title, 1),
             )
             fieldFirstPositions.setDescription(state.firstPositionsDescription)
+            fieldFirstEndMode.visibility = if (state.firstAreaMode) View.VISIBLE else View.GONE
+            fieldFirstEndPositionTitle.visibility = if (state.firstAreaMode) View.VISIBLE else View.GONE
+            fieldFirstEndMode.setSelection(if (state.firstEndSpecific) 1 else 0)
+            fieldFirstEndPosition.root.visibility =
+                if (state.firstAreaMode && state.firstEndSpecific) View.VISIBLE else View.GONE
+            fieldFirstEndPosition.setDescription(state.firstEndDescription)
             fieldFirstPositions.setError(state.firstPositionsError)
             fieldSecondDuration.setText(state.secondDuration, InputType.TYPE_CLASS_NUMBER)
             fieldSecondDuration.setError(state.secondDurationError)
@@ -181,6 +229,12 @@ class MultiTouchDialog(
                 else context.getString(R.string.field_multi_touch_positions_title, 2),
             )
             fieldSecondPositions.setDescription(state.secondPositionsDescription)
+            fieldSecondEndMode.visibility = if (state.secondAreaMode) View.VISIBLE else View.GONE
+            fieldSecondEndPositionTitle.visibility = if (state.secondAreaMode) View.VISIBLE else View.GONE
+            fieldSecondEndMode.setSelection(if (state.secondEndSpecific) 1 else 0)
+            fieldSecondEndPosition.root.visibility =
+                if (state.secondAreaMode && state.secondEndSpecific) View.VISIBLE else View.GONE
+            fieldSecondEndPosition.setDescription(state.secondEndDescription)
             fieldSecondPositions.setError(state.secondPositionsError)
         }
     }
@@ -217,6 +271,10 @@ class MultiTouchDialog(
                     if (stroke.mode == TouchMode.PRESS) {
                         (selected as ClickDescription).position?.let { point ->
                             viewModel.setPositions(firstTouch, point.toPoint(), point.toPoint())
+                        }
+                    } else if (stroke.mode == TouchMode.RANDOM_AREA) {
+                        (selected as ClickDescription).position?.let { point ->
+                            viewModel.setRandomAreaEnd(firstTouch, point.toPoint())
                         }
                     } else {
                         (selected as SwipeDescription).let { swipe ->

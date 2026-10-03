@@ -22,6 +22,8 @@ import com.buzbuz.smartautoclicker.core.base.interfaces.EntityWithId
 import com.buzbuz.smartautoclicker.core.database.ACTION_TABLE
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 
 /**
  * Entity defining an action from an event.
@@ -107,6 +109,7 @@ import kotlinx.serialization.Serializable
         ),
     ]
 )
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class ActionEntity(
     @PrimaryKey(autoGenerate = true) override var id: Long,
@@ -133,6 +136,11 @@ data class ActionEntity(
 
     // ActionType.PAUSE
     @ColumnInfo(name = "pauseDuration") val pauseDuration: Long? = null,
+    @EncodeDefault(EncodeDefault.Mode.ALWAYS)
+    @ColumnInfo(name = "pause_mode") val pauseMode: String? = null,
+    @ColumnInfo(name = "pause_random_min_duration") val pauseRandomMinDuration: Long? = null,
+    @ColumnInfo(name = "pause_random_max_duration") val pauseRandomMaxDuration: Long? = null,
+
 
     // ActionType.INTENT
     @ColumnInfo(name = "isAdvanced") val isAdvanced: Boolean? = null,
@@ -183,6 +191,10 @@ data class ActionEntity(
     @ColumnInfo(name = "second_touch_area_top") val secondTouchAreaTop: Int? = null,
     @ColumnInfo(name = "second_touch_area_right") val secondTouchAreaRight: Int? = null,
     @ColumnInfo(name = "second_touch_area_bottom") val secondTouchAreaBottom: Int? = null,
+    @ColumnInfo(name = "first_touch_random_end_x") val firstTouchRandomEndX: Int? = null,
+    @ColumnInfo(name = "first_touch_random_end_y") val firstTouchRandomEndY: Int? = null,
+    @ColumnInfo(name = "second_touch_random_end_x") val secondTouchRandomEndX: Int? = null,
+    @ColumnInfo(name = "second_touch_random_end_y") val secondTouchRandomEndY: Int? = null,
 ) : EntityWithId
 
 /**

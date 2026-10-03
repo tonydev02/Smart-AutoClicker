@@ -19,8 +19,10 @@ package com.buzbuz.smartautoclicker.feature.smart.config.ui.action.pause
 import android.text.InputFilter
 import android.text.InputType
 import android.util.Log
-import android.view.LayoutInflater
 import android.view.View
+import android.widget.ArrayAdapter
+import android.widget.AdapterView
+import android.view.LayoutInflater
 import android.view.ViewGroup
 
 import androidx.lifecycle.Lifecycle
@@ -43,6 +45,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.databinding.DialogConfigActionPauseBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.di.ScenarioConfigViewModelsEntryPoint
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.action.OnActionConfigCompleteListener
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.common.dialogs.showCloseWithoutSavingDialog
 
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -98,6 +101,17 @@ class PauseDialog(
                 }
             }
             hideSoftInputOnFocusLoss(editPauseDurationLayout.textField)
+            setupDurationInput(editRandomMinDurationLayout, R.string.field_pause_minimum, viewModel::setRandomMinDuration)
+            setupDurationInput(editRandomMaxDurationLayout, R.string.field_pause_maximum, viewModel::setRandomMaxDuration)
+            pauseModeField.adapter = ArrayAdapter.createFromResource(
+                context, R.array.pause_modes, android.R.layout.simple_spinner_item,
+            ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+            pauseModeField.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+                override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                    viewModel.setPauseMode(if (position == 1) PauseMode.RANDOM_RANGE else PauseMode.FIXED)
+                }
+            }
 
             timeUnitField.setItems(
                 label = context.getString(R.string.dropdown_label_time_unit),
@@ -123,6 +137,9 @@ class PauseDialog(
                 launch { viewModel.pauseDurationError.collect(viewBinding.editPauseDurationLayout::setError)}
                 launch { viewModel.selectedUnitItem.collect(viewBinding.timeUnitField::setSelectedItem) }
                 launch { viewModel.isValidAction.collect(::updateSaveButton) }
+                launch { viewModel.selectedMode.collect(::updatePauseMode) }
+                launch { viewModel.randomMinDuration.collect { viewBinding.editRandomMinDurationLayout.setText(it, InputType.TYPE_CLASS_NUMBER) } }
+                launch { viewModel.randomMaxDuration.collect { viewBinding.editRandomMaxDurationLayout.setText(it, InputType.TYPE_CLASS_NUMBER) } }
             }
         }
     }
@@ -157,6 +174,27 @@ class PauseDialog(
 
     private fun updatePauseDuration(newDuration: String?) {
         viewBinding.editPauseDurationLayout.setText(newDuration, InputType.TYPE_CLASS_NUMBER)
+    }
+    private fun setupDurationInput(
+        field: com.buzbuz.smartautoclicker.core.ui.databinding.IncludeFieldTextInputBinding,
+        label: Int,
+        onDurationChanged: (Long?) -> Unit,
+    ) {
+        field.apply {
+            textField.filters = arrayOf(MinMaxInputFilter(min = 1))
+            setLabel(label)
+            setOnTextChangedListener {
+                onDurationChanged(it.toString().takeIf(String::isNotEmpty)?.toLong())
+            }
+        }
+    }
+
+    private fun updatePauseMode(mode: PauseMode) {
+        val random = mode == PauseMode.RANDOM_RANGE
+        viewBinding.pauseModeField.setSelection(if (random) 1 else 0)
+        viewBinding.editPauseDurationLayout.root.visibility = if (random) View.GONE else View.VISIBLE
+        viewBinding.editRandomMinDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
+        viewBinding.editRandomMaxDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
     }
 
     private fun updateSaveButton(isValidCondition: Boolean) {

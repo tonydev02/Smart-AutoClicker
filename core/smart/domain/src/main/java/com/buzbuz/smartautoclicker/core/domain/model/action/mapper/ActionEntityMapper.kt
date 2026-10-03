@@ -32,6 +32,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.SystemAction
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.MultiTouch
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchStroke
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import android.graphics.Rect
 import com.buzbuz.smartautoclicker.core.domain.model.action.TouchMode
 
@@ -110,6 +111,10 @@ private fun MultiTouch.toMultiTouchEntity(): ActionEntity =
         secondTouchAreaTop = secondTouch.area?.top,
         secondTouchAreaRight = secondTouch.area?.right,
         secondTouchAreaBottom = secondTouch.area?.bottom,
+        firstTouchRandomEndX = firstTouch.randomAreaEnd?.x,
+        firstTouchRandomEndY = firstTouch.randomAreaEnd?.y,
+        secondTouchRandomEndX = secondTouch.randomAreaEnd?.x,
+        secondTouchRandomEndY = secondTouch.randomAreaEnd?.y,
     )
 
 private fun Pause.toPauseEntity(): ActionEntity =
@@ -120,6 +125,9 @@ private fun Pause.toPauseEntity(): ActionEntity =
         name = name!!,
         type = ActionType.PAUSE,
         pauseDuration = pauseDuration,
+        pauseMode = pauseMode.name,
+        pauseRandomMinDuration = randomMinDurationMs,
+        pauseRandomMaxDuration = randomMaxDurationMs,
     )
 
 private fun Intent.toIntentEntity(): ActionEntity =

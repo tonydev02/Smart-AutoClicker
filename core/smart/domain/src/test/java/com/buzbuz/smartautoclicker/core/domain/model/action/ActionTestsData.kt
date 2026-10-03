@@ -142,7 +142,7 @@ internal object ActionTestsData {
         pauseDuration: Long = PAUSE_DURATION,
         eventId: Long,
     ) = CompleteActionEntity(
-        action = ActionEntity(id, eventId, priority, name, ActionType.PAUSE, pauseDuration = pauseDuration),
+        action = ActionEntity(id, eventId, priority, name, ActionType.PAUSE, pauseDuration = pauseDuration, pauseMode = PauseMode.FIXED.name),
         intentExtras = emptyList(),
         eventsToggle = emptyList(),
     )

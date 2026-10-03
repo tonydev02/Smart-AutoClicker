@@ -21,10 +21,9 @@ import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 /**
  * Pause action.
  *
- * @param id the unique identifier for the action.
- * @param eventId the identifier of the event for this action.
- * @param name the name of the action.
- * @param pauseDuration the duration of the pause in milliseconds.
+ * [PauseMode.FIXED] uses [pauseDuration] with the legacy scenario-randomization behavior.
+ * [PauseMode.RANDOM_RANGE] selects a fresh duration from [randomMinDurationMs] through
+ * [randomMaxDurationMs], inclusive.
  */
 data class Pause(
     override val id: Identifier,
@@ -32,13 +31,27 @@ data class Pause(
     override val name: String? = null,
     override var priority: Int,
     val pauseDuration: Long? = null,
+    val pauseMode: PauseMode = PauseMode.FIXED,
+    val randomMinDurationMs: Long? = null,
+    val randomMaxDurationMs: Long? = null,
 ) : Action() {
 
-    override fun isComplete(): Boolean = super.isComplete() && pauseDuration != null
+    override fun isComplete(): Boolean = super.isComplete() && when (pauseMode) {
+        PauseMode.FIXED -> pauseDuration != null && pauseDuration > 0L
+        PauseMode.RANDOM_RANGE ->
+            randomMinDurationMs != null && randomMinDurationMs > 0L &&
+                randomMaxDurationMs != null && randomMaxDurationMs > 0L &&
+                randomMinDurationMs <= randomMaxDurationMs
+    }
 
     override fun hashCodeNoIds(): Int =
-        name.hashCode() + pauseDuration.hashCode()
-
+        name.hashCode() + pauseDuration.hashCode() + pauseMode.hashCode() +
+            randomMinDurationMs.hashCode() + randomMaxDurationMs.hashCode()
 
     override fun deepCopy(): Pause = copy(name = "" + name)
+}
+
+enum class PauseMode {
+    FIXED,
+    RANDOM_RANGE,
 }
