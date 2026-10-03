@@ -178,9 +178,23 @@ class ActionMapperTests {
             pauseMode = PauseMode.RANDOM_RANGE,
             randomMinDurationMs = 700L,
             randomMaxDurationMs = 1800L,
+            randomMostLikelyDurationMs = 1250L,
         )
         assertTrue(pause.isComplete())
         assertEquals(pause, CompleteActionEntity(pause.toEntity(), emptyList(), emptyList()).toDomain())
+        val oldRangeEntity = ActionTestsData.getNewPauseEntity(eventId = 2L).copy(
+            action = ActionTestsData.getNewPauseEntity(eventId = 2L).action.copy(
+                pauseDuration = null,
+                pauseMode = PauseMode.RANDOM_RANGE.name,
+                pauseRandomMinDuration = 700L,
+                pauseRandomMaxDuration = 1800L,
+                pauseRandomMostLikelyDuration = null,
+            ),
+        )
+        val restoredOldRange = oldRangeEntity.toDomain() as Pause
+        assertEquals(1250L, restoredOldRange.randomMostLikelyDurationMs)
+        assertTrue(restoredOldRange.isComplete())
+
         val legacy = ActionTestsData.getNewPauseEntity(eventId = 2L).copy(
             action = ActionTestsData.getNewPauseEntity(eventId = 2L).action.copy(pauseMode = null),
         )
@@ -192,7 +206,10 @@ class ActionMapperTests {
         assertFalse(pause.copy(randomMinDurationMs = 0L).isComplete())
         assertFalse(pause.copy(randomMaxDurationMs = -1L).isComplete())
         assertFalse(pause.copy(randomMinDurationMs = 1801L).isComplete())
-        assertTrue(pause.copy(randomMinDurationMs = 700L, randomMaxDurationMs = 700L).isComplete())
+        assertFalse(pause.copy(randomMostLikelyDurationMs = null).isComplete())
+        assertFalse(pause.copy(randomMostLikelyDurationMs = 699L).isComplete())
+        assertFalse(pause.copy(randomMostLikelyDurationMs = 1801L).isComplete())
+        assertTrue(pause.copy(randomMinDurationMs = 700L, randomMaxDurationMs = 700L, randomMostLikelyDurationMs = 700L).isComplete())
 
         val fixed = pause.copy(
             pauseDuration = 1_000L,

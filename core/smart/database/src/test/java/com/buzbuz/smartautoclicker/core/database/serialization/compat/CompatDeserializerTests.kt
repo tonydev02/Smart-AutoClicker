@@ -300,6 +300,7 @@ class CompatDeserializerTests {
             mapOf(
                 "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
                 "pauseRandomMinDuration" to JsonPrimitive(700L),
+                "pauseRandomMostLikelyDuration" to JsonPrimitive(1200L),
                 "pauseRandomMaxDuration" to JsonPrimitive(1800L),
             ),
         )
@@ -310,7 +311,27 @@ class CompatDeserializerTests {
         assertEquals("RANDOM_RANGE", result.pauseMode)
         assertNull(result.pauseDuration)
         assertEquals(700L, result.pauseRandomMinDuration)
+        assertEquals(1_200L, result.pauseRandomMostLikelyDuration)
         assertEquals(1800L, result.pauseRandomMaxDuration)
+    }
+
+    @Test
+    fun deserializeAction_pauseFromV27WithoutPeakPreservesLegacyBounds() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(700L),
+                "pauseRandomMaxDuration" to JsonPrimitive(1800L),
+            ),
+        )
+
+        val result = deserializeActionForVersion(27, json)!!
+
+        assertEquals("RANDOM_RANGE", result.pauseMode)
+        assertEquals(700L, result.pauseRandomMinDuration)
+        assertEquals(1800L, result.pauseRandomMaxDuration)
+        assertNull(result.pauseRandomMostLikelyDuration)
     }
 
     @Test
@@ -325,6 +346,21 @@ class CompatDeserializerTests {
         )
 
         assertNull(deserializeActionForVersion(26, json))
+    }
+
+    @Test
+    fun deserializeAction_pauseWithPeakOutsideRangeIsRejected() {
+        val json = createActionJson(
+            ActionType.PAUSE,
+            mapOf(
+                "pauseMode" to JsonPrimitive("RANDOM_RANGE"),
+                "pauseRandomMinDuration" to JsonPrimitive(700L),
+                "pauseRandomMostLikelyDuration" to JsonPrimitive(1_801L),
+                "pauseRandomMaxDuration" to JsonPrimitive(1_800L),
+            ),
+        )
+
+        assertNull(deserializeActionForVersion(27, json))
     }
 
     @Test

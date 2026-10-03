@@ -729,10 +729,12 @@ internal open class CompatDeserializer : Deserializer {
         val pauseDuration = jsonPause.getLong("pauseDuration")?.coerceAtLeast(0) ?: DEFAULT_PAUSE_DURATION
         val randomMinDuration = jsonPause.getLong("pauseRandomMinDuration")
         val randomMaxDuration = jsonPause.getLong("pauseRandomMaxDuration")
+        val randomMostLikelyDuration = jsonPause.getLong("pauseRandomMostLikelyDuration")
         if (pauseMode == "RANDOM_RANGE" &&
             (randomMinDuration == null || randomMinDuration <= 0L ||
                 randomMaxDuration == null || randomMaxDuration <= 0L ||
-                randomMinDuration > randomMaxDuration)
+                randomMinDuration > randomMaxDuration ||
+                randomMostLikelyDuration?.let { it !in randomMinDuration..randomMaxDuration } == true)
         ) return null
 
         return ActionEntity(
@@ -745,6 +747,7 @@ internal open class CompatDeserializer : Deserializer {
             pauseMode = pauseMode,
             pauseRandomMinDuration = randomMinDuration.takeIf { pauseMode == "RANDOM_RANGE" },
             pauseRandomMaxDuration = randomMaxDuration.takeIf { pauseMode == "RANDOM_RANGE" },
+            pauseRandomMostLikelyDuration = randomMostLikelyDuration.takeIf { pauseMode == "RANDOM_RANGE" },
         )
     }
 

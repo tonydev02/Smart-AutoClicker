@@ -121,4 +121,36 @@ class DeserializerTests {
 
         assertEquals(randomMovementScenario, restored)
     }
+
+    @Test
+    fun currentVersionRoundTripsRandomRangePausePeak() {
+        val rangeScenario = DEFAULT_COMPLETE_SCENARIO.copy(
+            events = DEFAULT_COMPLETE_SCENARIO.events.map { event ->
+                event.copy(
+                    actions = listOf(
+                        CompleteActionEntity(
+                            action = ActionEntity(
+                                id = 8,
+                                eventId = 1,
+                                priority = 0,
+                                name = "Triangular pause",
+                                type = ActionType.PAUSE,
+                                pauseMode = "RANDOM_RANGE",
+                                pauseRandomMinDuration = 700L,
+                                pauseRandomMostLikelyDuration = 1_200L,
+                                pauseRandomMaxDuration = 1_800L,
+                            ),
+                            intentExtras = emptyList(),
+                            eventsToggle = emptyList(),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        val restored = DeserializerFactory.create(DATABASE_VERSION)
+            ?.deserializeCompleteScenario(rangeScenario.encodeToJsonObject())
+
+        assertEquals(rangeScenario, restored)
+    }
 }

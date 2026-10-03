@@ -1,14 +1,31 @@
 package com.buzbuz.smartautoclicker.core.processing.data.processor
 
+import kotlin.math.roundToLong
+import kotlin.math.sqrt
 import kotlin.random.Random
 
-/** Selects an inclusive random pause duration without overflowing at Long.MAX_VALUE. */
-internal fun selectRandomPauseDuration(minimumMs: Long, maximumMs: Long, random: Random): Long {
+/** Samples an inclusive duration from a triangular distribution without overflowing. */
+internal fun selectRandomPauseDuration(
+    minimumMs: Long,
+    mostLikelyMs: Long,
+    maximumMs: Long,
+    random: Random,
+): Long {
     require(minimumMs > 0L && maximumMs >= minimumMs)
-    return if (maximumMs == Long.MAX_VALUE) {
-        val width = maximumMs - minimumMs + 1L
-        minimumMs + random.nextLong(width)
+    require(mostLikelyMs in minimumMs..maximumMs)
+
+    val spanMs = maximumMs - minimumMs
+    if (spanMs == 0L) return minimumMs
+
+    val span = spanMs.toDouble()
+    val modeOffset = (mostLikelyMs - minimumMs).toDouble()
+    val split = modeOffset / span
+    val sample = random.nextDouble()
+    val offset = if (sample < split) {
+        sqrt(sample * span * modeOffset)
     } else {
-        random.nextLong(minimumMs, maximumMs + 1L)
+        span - sqrt((1.0 - sample) * span * (span - modeOffset))
     }
+
+    return minimumMs + offset.roundToLong().coerceIn(0L, spanMs)
 }

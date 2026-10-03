@@ -74,10 +74,12 @@ class ActionEntitySerializationTests {
                 pauseMode = "RANDOM_RANGE",
                 pauseRandomMinDuration = 700L,
                 pauseRandomMaxDuration = 1_800L,
+                pauseRandomMostLikelyDuration = 1_200L,
             ),
         )
         assertTrue(rangeJson.contains("\"pauseMode\":\"RANDOM_RANGE\""))
         assertTrue(rangeJson.contains("\"pauseRandomMinDuration\":700"))
         assertTrue(rangeJson.contains("\"pauseRandomMaxDuration\":1800"))
+        assertTrue(rangeJson.contains("\"pauseRandomMostLikelyDuration\":1200"))
     }
 }

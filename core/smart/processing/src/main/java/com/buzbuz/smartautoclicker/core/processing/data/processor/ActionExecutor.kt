@@ -230,6 +230,7 @@ internal class ActionExecutor(
             PauseMode.FIXED -> pause.pauseDuration!!.getPauseDurationMs(random)
             PauseMode.RANDOM_RANGE -> selectRandomPauseDuration(
                 pause.randomMinDurationMs!!,
+                pause.randomMostLikelyDurationMs!!,
                 pause.randomMaxDurationMs!!,
                 pauseRangeRandom,
             )

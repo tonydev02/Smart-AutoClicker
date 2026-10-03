@@ -100,16 +100,32 @@ private fun CompleteActionEntity.toDomainRandomMovement(cleanIds: Boolean = fals
     endPosition = getPositionIfValid(action.randomAreaEndX, action.randomAreaEndY),
 )
 
-private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false) = Pause(
-    id = Identifier(id = action.id, asTemporary = cleanIds),
-    eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
-    name = action.name,
-    priority = action.priority,
-    pauseDuration = action.pauseDuration,
-    pauseMode = action.pauseMode?.let { runCatching { PauseMode.valueOf(it) }.getOrNull() } ?: PauseMode.FIXED,
-    randomMinDurationMs = action.pauseRandomMinDuration,
-    randomMaxDurationMs = action.pauseRandomMaxDuration,
-)
+private fun CompleteActionEntity.toDomainPause(cleanIds: Boolean = false): Pause {
+    val pauseMode = action.pauseMode?.let { runCatching { PauseMode.valueOf(it) }.getOrNull() }
+        ?: PauseMode.FIXED
+    val minDuration = action.pauseRandomMinDuration
+    val maxDuration = action.pauseRandomMaxDuration
+    val mostLikelyDuration = action.pauseRandomMostLikelyDuration
+        ?: if (pauseMode == PauseMode.RANDOM_RANGE && minDuration != null && minDuration > 0L &&
+            maxDuration != null && maxDuration >= minDuration
+        ) {
+            minDuration + (maxDuration - minDuration) / 2L
+        } else {
+            null
+        }
+
+    return Pause(
+        id = Identifier(id = action.id, asTemporary = cleanIds),
+        eventId = Identifier(id = action.eventId, asTemporary = cleanIds),
+        name = action.name,
+        priority = action.priority,
+        pauseDuration = action.pauseDuration,
+        pauseMode = pauseMode,
+        randomMinDurationMs = minDuration,
+        randomMaxDurationMs = maxDuration,
+        randomMostLikelyDurationMs = mostLikelyDuration,
+    )
+}
 
 private fun CompleteActionEntity.toDomainIntent(cleanIds: Boolean = false) = Intent(
     id = Identifier(id = action.id, asTemporary = cleanIds),

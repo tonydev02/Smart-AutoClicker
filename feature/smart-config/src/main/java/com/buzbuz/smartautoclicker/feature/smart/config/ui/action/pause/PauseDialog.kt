@@ -36,6 +36,11 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.dialogs.setButtonEnabledStat
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setError
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setLabel
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnTextChangedListener
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setOnValueChangedFromUserListener
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setSliderRange
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setSliderValue
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setTitle
+import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setValueLabelState
 import com.buzbuz.smartautoclicker.core.ui.bindings.fields.setText
 import com.buzbuz.smartautoclicker.core.common.overlays.base.viewModels
 import com.buzbuz.smartautoclicker.core.common.overlays.dialog.OverlayDialog
@@ -103,6 +108,12 @@ class PauseDialog(
             hideSoftInputOnFocusLoss(editPauseDurationLayout.textField)
             setupDurationInput(editRandomMinDurationLayout, R.string.field_pause_minimum, viewModel::setRandomMinDuration)
             setupDurationInput(editRandomMaxDurationLayout, R.string.field_pause_maximum, viewModel::setRandomMaxDuration)
+            fieldRandomMostLikely.apply {
+                setTitle(context.getString(R.string.field_pause_most_likely))
+                setSliderRange(0f, 10000f)
+                setValueLabelState(isEnabled = false)
+                setOnValueChangedFromUserListener { viewModel.setRandomMostLikelyPosition(it.toInt()) }
+            }
             pauseModeField.adapter = ArrayAdapter.createFromResource(
                 context, R.array.pause_modes, android.R.layout.simple_spinner_item,
             ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
@@ -140,6 +151,24 @@ class PauseDialog(
                 launch { viewModel.selectedMode.collect(::updatePauseMode) }
                 launch { viewModel.randomMinDuration.collect { viewBinding.editRandomMinDurationLayout.setText(it, InputType.TYPE_CLASS_NUMBER) } }
                 launch { viewModel.randomMaxDuration.collect { viewBinding.editRandomMaxDurationLayout.setText(it, InputType.TYPE_CLASS_NUMBER) } }
+                launch {
+                    viewModel.randomMostLikelyPosition.collect {
+                        viewBinding.fieldRandomMostLikely.setSliderValue(it.toFloat())
+                    }
+                }
+                launch {
+                    viewModel.randomMostLikelyDuration.collect {
+                        viewBinding.fieldRandomMostLikely.value.apply {
+                            text = it.orEmpty()
+                            visibility = if (it == null) View.GONE else View.VISIBLE
+                        }
+                    }
+                }
+                launch {
+                    viewModel.randomDurationRangeEnabled.collect {
+                        viewBinding.fieldRandomMostLikely.slider.isEnabled = it
+                    }
+                }
             }
         }
     }
@@ -195,6 +224,7 @@ class PauseDialog(
         viewBinding.editPauseDurationLayout.root.visibility = if (random) View.GONE else View.VISIBLE
         viewBinding.editRandomMinDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
         viewBinding.editRandomMaxDurationLayout.root.visibility = if (random) View.VISIBLE else View.GONE
+        viewBinding.fieldRandomMostLikely.root.visibility = if (random) View.VISIBLE else View.GONE
     }
 
     private fun updateSaveButton(isValidCondition: Boolean) {

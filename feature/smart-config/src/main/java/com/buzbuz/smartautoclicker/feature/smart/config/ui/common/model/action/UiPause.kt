@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.feature.smart.config.ui.common.model.action
 import android.content.Context
 import androidx.annotation.DrawableRes
 import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
+import com.buzbuz.smartautoclicker.core.domain.model.action.PauseMode
 import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 
@@ -30,8 +31,15 @@ internal fun getPauseIconRes(): Int =
 internal fun Pause.getDescription(context: Context, inError: Boolean): String = when {
     inError -> context.getString(R.string.item_error_action_invalid_generic)
 
+    pauseMode == PauseMode.RANDOM_RANGE -> context.getString(
+        R.string.item_pause_random_range_details,
+        formatDuration(randomMinDurationMs ?: 0L),
+        formatDuration(randomMaxDurationMs ?: 0L),
+        formatDuration(randomMostLikelyDurationMs ?: 0L),
+    )
+
     else -> context.getString(
         R.string.item_pause_details,
-        formatDuration(pauseDuration ?: 1)
+        formatDuration(pauseDuration ?: 1),
     )
 }

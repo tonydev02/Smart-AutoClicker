@@ -67,18 +67,56 @@ class RandomAreaPathTests {
     }
 
     @Test
-    fun randomPauseDurationUsesInclusiveBoundsAndHandlesLongExtremes() {
+    fun randomPauseDurationUsesTriangularDistributionAndHandlesLongExtremes() {
         val random = Random(55)
         repeat(2_000) {
-            val result = selectRandomPauseDuration(700L, 1_800L, random)
+            val result = selectRandomPauseDuration(700L, 1_100L, 1_800L, random)
             assertTrue(result in 700L..1_800L)
         }
-        assertEquals(Long.MAX_VALUE, selectRandomPauseDuration(Long.MAX_VALUE, Long.MAX_VALUE, random))
+
+        assertEquals(
+            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, Random(it)) },
+            (0 until 100).map { selectRandomPauseDuration(700L, 1_100L, 1_800L, Random(it)) },
+        )
+        assertEquals(
+            Long.MAX_VALUE,
+            selectRandomPauseDuration(Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE, random),
+        )
         repeat(100) {
-            assertTrue(selectRandomPauseDuration(Long.MAX_VALUE - 20L, Long.MAX_VALUE, random) in (Long.MAX_VALUE - 20L)..Long.MAX_VALUE)
+            assertTrue(
+                selectRandomPauseDuration(Long.MAX_VALUE - 20L, Long.MAX_VALUE - 10L, Long.MAX_VALUE, random) in
+                    (Long.MAX_VALUE - 20L)..Long.MAX_VALUE,
+            )
         }
-        val results = (0 until 100).map { selectRandomPauseDuration(1L, 100L, Random(it)) }.toSet()
-        assertTrue(results.size > 1)
+        repeat(100) {
+            assertTrue(selectRandomPauseDuration(1L, 1L, 100L, random) in 1L..100L)
+            assertTrue(selectRandomPauseDuration(1L, 100L, 100L, random) in 1L..100L)
+        }
+        assertEquals(7L, selectRandomPauseDuration(7L, 7L, 7L, random))
+
+        val variedSamples = (0 until 100).map {
+            selectRandomPauseDuration(1L, 50L, 100L, Random(it))
+        }.toSet()
+        assertTrue(variedSamples.size > 1)
+    }
+
+    @Test
+    fun randomPauseDurationHasTriangularMeanAndPeakDensity() {
+        val random = Random(42)
+        val sampleCount = 30_000
+        var total = 0.0
+        var nearModeCount = 0
+        var upperTailCount = 0
+        repeat(sampleCount) {
+            val sample = selectRandomPauseDuration(1L, 2_501L, 10_001L, random)
+            total += sample.toDouble()
+            if (sample in 2_001L..3_001L) nearModeCount++
+            if (sample in 8_001L..9_001L) upperTailCount++
+        }
+
+        val expectedMean = (1.0 + 2_501.0 + 10_001.0) / 3.0
+        assertTrue(kotlin.math.abs(total / sampleCount - expectedMean) < 100.0)
+        assertTrue(nearModeCount > upperTailCount * 3)
     }
 
     @Test

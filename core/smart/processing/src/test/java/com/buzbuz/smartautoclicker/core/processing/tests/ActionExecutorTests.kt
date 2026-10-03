@@ -374,6 +374,7 @@ class ActionExecutorTests {
             priority = 0,
             pauseMode = PauseMode.RANDOM_RANGE,
             randomMinDurationMs = 700L,
+            randomMostLikelyDurationMs = 750L,
             randomMaxDurationMs = 800L,
         )
         for (randomize in listOf(false, true)) {

@@ -140,6 +140,7 @@ data class ActionEntity(
     @ColumnInfo(name = "pause_mode") val pauseMode: String? = null,
     @ColumnInfo(name = "pause_random_min_duration") val pauseRandomMinDuration: Long? = null,
     @ColumnInfo(name = "pause_random_max_duration") val pauseRandomMaxDuration: Long? = null,
+    @ColumnInfo(name = "pause_random_most_likely_duration") val pauseRandomMostLikelyDuration: Long? = null,
 
 
     // ActionType.INTENT

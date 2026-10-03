@@ -30,6 +30,8 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.TimeUnitDropDownIte
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.findAppropriateTimeUnit
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.formatDuration
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.toDurationMs
+import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration as formatActualDuration
+import kotlin.math.roundToLong
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import com.buzbuz.smartautoclicker.feature.smart.config.utils.getEventConfigPreferences
 import com.buzbuz.smartautoclicker.feature.smart.config.utils.putPauseDurationConfig
@@ -56,6 +58,14 @@ class PauseViewModel @Inject constructor(
     @ApplicationContext context: Context,
     private val editionRepository: EditionRepository,
 ) : ViewModel() {
+    init {
+        editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
+            if (pause.pauseMode == PauseMode.RANDOM_RANGE) {
+                val normalized = normalizeRandomPeak(pause)
+                if (normalized != pause) editionRepository.updateEditedAction(normalized)
+            }
+        }
+    }
 
     /** The action being configured by the user. */
     private val configuredPause = editionRepository.editionState.editedActionState
@@ -109,7 +119,20 @@ class PauseViewModel @Inject constructor(
     val randomMaxDuration: Flow<String?> = _selectedUnitItem.flatMapLatest { unit ->
         configuredPause.map { pause -> pause.randomMaxDurationMs?.let(unit::formatDuration) }.take(1)
     }
-
+    val randomMostLikelyDuration: Flow<String?> = configuredPause
+        .map { it.randomMostLikelyDurationMs?.let(::formatActualDuration) }
+    val randomMostLikelyPosition: Flow<Int> = configuredPause
+        .map { pause ->
+            pause.randomMostLikelyDurationMs?.let {
+                durationToPosition(it, pause.randomMinDurationMs, pause.randomMaxDurationMs)
+            } ?: 0
+        }
+    val randomDurationRangeEnabled: Flow<Boolean> = configuredPause
+        .map { pause ->
+            val minimum = pause.randomMinDurationMs ?: return@map false
+            val maximum = pause.randomMaxDurationMs ?: return@map false
+            minimum > 0L && maximum > minimum
+        }
     /** Tells if the configured pause is valid and can be saved. */
     val isValidAction: Flow<Boolean> = editionRepository.editionState.editedActionState
         .map { it.canBeSaved }
@@ -144,19 +167,38 @@ class PauseViewModel @Inject constructor(
     fun setPauseMode(mode: PauseMode) {
         _selectedMode.value = mode
         editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
-            if (pause.pauseMode != mode) editionRepository.updateEditedAction(pause.copy(pauseMode = mode))
+            if (pause.pauseMode != mode) {
+                val updated = pause.copy(pauseMode = mode)
+                editionRepository.updateEditedAction(
+                    if (mode == PauseMode.RANDOM_RANGE) normalizeRandomPeak(updated) else updated,
+                )
+            }
         }
     }
 
     fun setRandomMinDuration(duration: Long?) = updateRandomDuration(duration, true)
     fun setRandomMaxDuration(duration: Long?) = updateRandomDuration(duration, false)
 
+    fun setRandomMostLikelyPosition(position: Int) {
+        editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
+            val minimum = pause.randomMinDurationMs ?: return
+            val maximum = pause.randomMaxDurationMs ?: return
+            if (minimum <= 0L || maximum < minimum) return
+            val peak = positionToDuration(position, minimum, maximum)
+            if (pause.randomMostLikelyDurationMs != peak) {
+                editionRepository.updateEditedAction(pause.copy(randomMostLikelyDurationMs = peak))
+            }
+        }
+    }
+
     private fun updateRandomDuration(duration: Long?, isMinimum: Boolean) {
         editionRepository.editionState.getEditedAction<Pause>()?.let { pause ->
             val durationMs = duration.toDurationMs(_selectedUnitItem.value)
             val updated = if (isMinimum) pause.copy(randomMinDurationMs = durationMs)
             else pause.copy(randomMaxDurationMs = durationMs)
-            editionRepository.updateEditedAction(updated)
+            editionRepository.updateEditedAction(
+                if (pause.pauseMode == PauseMode.RANDOM_RANGE) normalizeRandomPeak(updated) else updated,
+            )
         }
     }
 
@@ -170,3 +212,34 @@ class PauseViewModel @Inject constructor(
         }
     }
 }
+
+internal fun normalizeRandomPeak(pause: Pause): Pause {
+    if (pause.pauseMode != PauseMode.RANDOM_RANGE) return pause
+    val minimum = pause.randomMinDurationMs ?: return pause
+    val maximum = pause.randomMaxDurationMs ?: return pause
+    if (minimum <= 0L || maximum < minimum) return pause
+    val peak = pause.randomMostLikelyDurationMs?.coerceIn(minimum, maximum)
+        ?: (minimum + (maximum - minimum) / 2)
+    return if (peak == pause.randomMostLikelyDurationMs) pause
+    else pause.copy(randomMostLikelyDurationMs = peak)
+}
+
+internal fun durationToPosition(duration: Long, minimum: Long?, maximum: Long?): Int {
+    if (minimum == null || maximum == null || minimum <= 0L || maximum <= minimum) return 0
+    return (((duration.coerceIn(minimum, maximum) - minimum).toDouble() /
+        (maximum - minimum).toDouble()) * MAX_RANDOM_POSITION).roundToLong().toInt()
+}
+
+internal fun positionToDuration(position: Int, minimum: Long, maximum: Long): Long {
+    if (minimum <= 0L || maximum < minimum) return minimum
+    if (maximum == minimum) return minimum
+    val normalized = position.coerceIn(0, MAX_RANDOM_POSITION)
+    if (normalized == 0) return minimum
+    if (normalized == MAX_RANDOM_POSITION) return maximum
+    val difference = maximum - minimum
+    val offset = (difference.toDouble() * normalized / MAX_RANDOM_POSITION).roundToLong()
+        .coerceIn(0L, difference)
+    return minimum + offset
+}
+
+private const val MAX_RANDOM_POSITION = 10000
