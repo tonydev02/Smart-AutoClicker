@@ -34,6 +34,7 @@ import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.findAppropriateTime
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.formatDuration
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.toDurationMs
 import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration as formatActualDuration
+import java.util.Locale
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
@@ -133,6 +134,8 @@ class PauseViewModel @Inject constructor(
         }
     val randomSpreadPosition: Flow<Int> = configuredPause
         .map { spreadToPosition(it.randomSpread) }
+    val randomSpreadValue: Flow<String> = configuredPause
+        .map { formatRandomSpread(it.randomSpread) }
     val randomDurationRangeEnabled: Flow<Boolean> = configuredPause
         .map { pause ->
             val minimum = pause.randomMinDurationMs ?: return@map false
@@ -248,6 +251,14 @@ internal fun normalizeRandomSpread(pause: Pause): Pause {
     return pause.copy(randomSpread = RANDOM_PAUSE_SPREAD_DEFAULT)
 }
 
+
+internal fun formatRandomSpread(spread: Double?): String {
+    val effectiveSpread = spread
+        ?.takeIf(Double::isFinite)
+        ?.coerceIn(RANDOM_PAUSE_SPREAD_MIN, RANDOM_PAUSE_SPREAD_MAX)
+        ?: RANDOM_PAUSE_SPREAD_DEFAULT
+    return String.format(Locale.ROOT, "%.2f", effectiveSpread)
+}
 internal fun spreadToPosition(spread: Double?): Int {
     val effectiveSpread = spread
         ?.takeIf(Double::isFinite)

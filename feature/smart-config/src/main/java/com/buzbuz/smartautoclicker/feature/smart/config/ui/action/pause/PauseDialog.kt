@@ -180,6 +180,14 @@ class PauseDialog(
                         viewBinding.fieldRandomSpread.setSliderValue(it.toFloat())
                     }
                 }
+                launch {
+                    viewModel.randomSpreadValue.collect {
+                        viewBinding.fieldRandomSpread.value.apply {
+                            text = it
+                            visibility = View.VISIBLE
+                        }
+                    }
+                }
             }
         }
     }

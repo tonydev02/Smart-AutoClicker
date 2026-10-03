@@ -67,6 +67,16 @@ class PauseViewModelTests {
     }
 
     @Test
+    fun spreadDisplayFormatsEffectiveValueToTwoDecimalPlaces() {
+        assertEquals("0.15", formatRandomSpread(0.15))
+        assertEquals("0.60", formatRandomSpread(0.60))
+        assertEquals("1.25", formatRandomSpread(1.25))
+        assertEquals("0.60", formatRandomSpread(null))
+        assertEquals("0.15", formatRandomSpread(0.10))
+        assertEquals("1.25", formatRandomSpread(1.30))
+    }
+
+    @Test
     fun spreadNormalizationDefaultsIncompleteRangeAndLeavesFixedModeAlone() {
         val fixed = randomPause(700L, 1_800L, 1_000L).copy(
             pauseMode = PauseMode.FIXED,
