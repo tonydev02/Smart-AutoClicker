@@ -97,8 +97,11 @@ class EventDialog(
         setButtonVisibility(DialogNavigationButton.DELETE, View.VISIBLE)
 
         dialogTitle.setText(
-            if (viewModel.isConfiguringScreenEvent()) R.string.dialog_title_image_event
-            else R.string.dialog_title_trigger_event
+            when {
+                viewModel.isConfiguringScreenEvent() -> R.string.dialog_title_image_event
+                viewModel.isConfiguringFillerEvent() -> R.string.dialog_title_filler_event
+                else -> R.string.dialog_title_trigger_event
+            }
         )
 
         buttonDismiss.setDebouncedOnClickListener {
@@ -175,6 +178,11 @@ class EventDialog(
     }
 
     private fun DialogEventConfigBinding.setupConditionsCard() {
+        if (viewModel.isConfiguringFillerEvent()) {
+            layoutConditionSelector.visibility = View.GONE
+            fieldConditionsOperator.root.visibility = View.GONE
+            return
+        }
         if (viewModel.isConfiguringScreenEvent()) {
             fieldTriggerConditionsSelector.root.visibility = View.GONE
             fieldImageConditionsSelector.apply {

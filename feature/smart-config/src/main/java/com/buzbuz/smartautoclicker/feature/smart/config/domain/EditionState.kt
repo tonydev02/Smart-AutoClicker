@@ -31,6 +31,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.feature.smart.config.data.ScenarioEditor
 import com.buzbuz.smartautoclicker.feature.smart.config.data.events.EventsEditor
@@ -60,17 +61,21 @@ internal class EditionState internal constructor(
             editor.editedScenarioState,
             editor.editedScreenEventListState,
             editor.editedTriggerEventListState,
+            editor.editedFillerEventListState,
             editor.editedCountersListState,
-        ) { scenario, imageEvents, triggerEvents, counters ->
+        ) { scenario, imageEvents, triggerEvents, fillerEvents, counters ->
 
-            if (scenario.value == null || imageEvents.value == null || triggerEvents.value == null || counters.value == null)
-                return@combine EditedElementState(value = null, hasChanged = false, canBeSaved = false)
+            if (scenario.value == null || imageEvents.value == null || triggerEvents.value == null ||
+                fillerEvents.value == null || counters.value == null
+            ) return@combine EditedElementState(value = null, hasChanged = false, canBeSaved = false)
 
             EditedElementState(
-                value = EditedScenarioState(scenario.value, imageEvents.value, triggerEvents.value),
-                hasChanged = scenario.hasChanged || imageEvents.hasChanged || triggerEvents.hasChanged || counters.hasChanged,
-                canBeSaved = scenario.canBeSaved && imageEvents.canBeSaved && triggerEvents.canBeSaved && counters.canBeSaved
-                        && (imageEvents.value.isNotEmpty() || triggerEvents.value.isNotEmpty()),
+                value = EditedScenarioState(scenario.value, imageEvents.value, triggerEvents.value, fillerEvents.value),
+                hasChanged = scenario.hasChanged || imageEvents.hasChanged || triggerEvents.hasChanged ||
+                        fillerEvents.hasChanged || counters.hasChanged,
+                canBeSaved = scenario.canBeSaved && imageEvents.canBeSaved && triggerEvents.canBeSaved &&
+                        fillerEvents.canBeSaved && counters.canBeSaved &&
+                        (imageEvents.value.isNotEmpty() || triggerEvents.value.isNotEmpty() || fillerEvents.value.isNotEmpty()),
             )
         }
 
@@ -84,6 +89,8 @@ internal class EditionState internal constructor(
 
     override val editedTriggerEventsState: Flow<EditedListState<TriggerEvent>> =
         editor.editedTriggerEventListState
+    override val editedFillerEventsState: Flow<EditedListState<FillerEvent>> =
+        editor.editedFillerEventListState
 
     override val allEditedCountersFlow: Flow<List<Counter>> =
         editor.allEditedCounters.filterNotNull()
@@ -96,6 +103,8 @@ internal class EditionState internal constructor(
 
     override val editedTriggerEventState: Flow<EditedElementState<TriggerEvent>> =
         editor.editedTriggerEventState
+    override val editedFillerEventState: Flow<EditedElementState<FillerEvent>> =
+        editor.editedFillerEventState
 
     override val allEditedEventsFlow : Flow<List<Event>> =
         editor.allEditedEvents

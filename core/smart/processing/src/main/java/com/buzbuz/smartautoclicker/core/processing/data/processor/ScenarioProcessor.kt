@@ -23,6 +23,7 @@ import androidx.annotation.VisibleForTesting
 import com.buzbuz.smartautoclicker.core.common.actions.AndroidActionExecutor
 import com.buzbuz.smartautoclicker.core.detection.ImageDetector
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
@@ -30,7 +31,12 @@ import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
 import com.buzbuz.smartautoclicker.core.processing.domain.EventType
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.withContext
 
 /**
  * Process a screen image and tries to detect the list of [ScreenEvent] on it.
@@ -56,7 +62,10 @@ internal class ScenarioProcessor(
     unblockWorkaroundEnabled: Boolean = false,
     private val onStopRequested: () -> Unit,
     private val progressListener: SmartProcessingListener?,
+    fillerEvents: List<FillerEvent> = emptyList(),
 ) {
+
+    private val fillerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /** Handle the processing state of the scenario. */
     @VisibleForTesting internal val processingState: ProcessingState = ProcessingState(
@@ -64,6 +73,8 @@ internal class ScenarioProcessor(
         triggerEvents = triggerEvents,
         counters = counters,
         progressListener = progressListener,
+        fillerEvents = fillerEvents,
+        onFillerEventStateChanged = { event, enabled -> fillerController.setEnabled(event, enabled) },
     )
     /** Check conditions and tell if they are fulfilled. */
     private val conditionsVerifier = ConditionsVerifier(
@@ -80,12 +91,18 @@ internal class ScenarioProcessor(
         randomize = randomize,
         unblockWorkaroundEnabled = unblockWorkaroundEnabled,
     )
+    private val fillerController = FillerController(fillerEvents, fillerScope) { filler, mayDispatch ->
+        actionExecutor.executeFillerRandomMovement(filler.movement, mayDispatch)
+    }
 
     fun onScenarioStart(context: Context) {
         processingState.onProcessingStarted(context)
+        fillerController.start()
     }
 
     fun onScenarioEnd() {
+        fillerController.stop()
+        fillerScope.cancel()
         processingState.onProcessingStopped()
     }
 
@@ -141,10 +158,15 @@ internal class ScenarioProcessor(
                 conditions = triggerEvent.conditions,
             )
 
-            progressListener?.onEventProcessingCompleted(triggerEvent, results.fulfilled == true, results.getAllTriggerConditionsResults())
-            if (results.fulfilled  == true) {
-                actionExecutor.executeActions(triggerEvent, results)
-                progressListener?.onEventActionsExecuted(triggerEvent, results.getAllTriggerConditionsResults())
+            progressListener?.onEventProcessingCompleted(
+                triggerEvent,
+                results.fulfilled == true,
+                results.getAllTriggerConditionsResults(),
+            )
+            if (results.fulfilled == true) {
+                executeForegroundActions(triggerEvent, results) {
+                    progressListener?.onEventActionsExecuted(triggerEvent, results.getAllTriggerConditionsResults())
+                }
             }
         }
     }
@@ -171,10 +193,15 @@ internal class ScenarioProcessor(
                     conditions = screenEvent.conditions,
                 )
 
-                progressListener?.onEventProcessingCompleted(screenEvent, results.fulfilled == true, results.getAllScreenConditionsResults())
+                progressListener?.onEventProcessingCompleted(
+                    screenEvent,
+                    results.fulfilled == true,
+                    results.getAllScreenConditionsResults(),
+                )
                 if (results.fulfilled == true) {
-                    actionExecutor.executeActions(screenEvent, results)
-                    progressListener?.onEventActionsExecuted(screenEvent, results.getAllScreenConditionsResults())
+                    executeForegroundActions(screenEvent, results) {
+                        progressListener?.onEventActionsExecuted(screenEvent, results.getAllScreenConditionsResults())
+                    }
 
                     processingState.startCooldownIfNeeded(screenEvent)
                     if (!screenEvent.keepDetecting) break
@@ -186,6 +213,20 @@ internal class ScenarioProcessor(
         } finally {
             // We are done processing this frame, release it
             imageDetector.releaseScreenBitmap(screenFrame)
+        }
+    }
+
+    private suspend fun executeForegroundActions(
+        event: com.buzbuz.smartautoclicker.core.domain.model.event.Event,
+        results: ConditionsResults,
+        onActionsExecuted: () -> Unit,
+    ) {
+        withContext(Dispatchers.Main.immediate) { fillerController.onForegroundStarted() }
+        try {
+            actionExecutor.executeActions(event, results)
+            onActionsExecuted()
+        } finally {
+            withContext(Dispatchers.Main.immediate) { fillerController.onForegroundFinished() }
         }
     }
 }

@@ -207,9 +207,20 @@ internal class ActionExecutor(
     }
 
     private suspend fun executeRandomMovement(action: RandomMovement) {
-        if (!action.isComplete()) return
-        val area = action.area ?: return
-        val durationMs = action.durationMs ?: return
+        executeRandomMovement(action) { true }
+    }
+
+    /**
+     * Execute the same random path generation used by a normal action, validating filler ownership
+     * on the main thread immediately before handing the gesture to AccessibilityService.
+     */
+    internal suspend fun executeFillerRandomMovement(action: RandomMovement, mayDispatch: () -> Boolean): Boolean =
+        executeRandomMovement(action, mayDispatch)
+
+    private suspend fun executeRandomMovement(action: RandomMovement, mayDispatch: () -> Boolean): Boolean {
+        if (!action.isComplete()) return false
+        val area = action.area ?: return false
+        val durationMs = action.durationMs ?: return false
         val gesture = GestureDescription.Builder()
             .addRandomizedStroke(
                 path = generateRandomAreaPath(area, durationMs, randomAreaRandom, action.endPosition),
@@ -219,8 +230,10 @@ internal class ActionExecutor(
             )
             .build()
 
-        withContext(Dispatchers.Main) {
+        return withContext(Dispatchers.Main) {
+            if (!mayDispatch()) return@withContext false
             androidExecutor.dispatchGesture(gesture)
+            true
         }
     }
 

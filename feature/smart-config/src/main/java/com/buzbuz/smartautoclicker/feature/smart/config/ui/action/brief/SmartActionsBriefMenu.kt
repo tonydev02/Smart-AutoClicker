@@ -78,7 +78,12 @@ class SmartActionsBriefMenu(initialItemIndex: Int) : ItemBriefMenu(
     }
 
     override fun onCreateMenu(layoutInflater: LayoutInflater): ViewGroup {
-        viewBinding = OverlayActionsBriefMenuBinding.inflate(layoutInflater)
+        viewBinding = OverlayActionsBriefMenuBinding.inflate(layoutInflater).apply {
+            if (viewModel.isFillerEvent()) {
+                btnRecord.visibility = View.GONE
+                btnAddOther.visibility = View.GONE
+            }
+        }
         return viewBinding.root
     }
 

@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 import com.buzbuz.smartautoclicker.core.ui.bindings.dropdown.TimeUnitDropDownItem
@@ -94,6 +95,9 @@ class EventDialogViewModel @Inject constructor(
 
     fun isConfiguringScreenEvent(): Boolean =
         editionRepository.editionState.getEditedEvent() is ScreenEvent
+
+    fun isConfiguringFillerEvent(): Boolean =
+        editionRepository.editionState.getEditedEvent() is FillerEvent
 
     fun hasUnsavedModifications(): Boolean =
         uiState.value?.hasUnsavedModifications == true
@@ -213,6 +217,7 @@ class EventDialogViewModel @Inject constructor(
         when (this) {
             is ScreenEvent -> toScreenEventUiState(context, hasUnsavedModifications, canBeSaved, cooldownTimeUnit ?: TimeUnitDropDownItem.Seconds)
             is TriggerEvent -> toTriggerEventUiState(hasUnsavedModifications, canBeSaved)
+            is FillerEvent -> toFillerEventUiState(hasUnsavedModifications, canBeSaved)
         }
 
     private fun ScreenEvent.toScreenEventUiState(
@@ -258,6 +263,19 @@ class EventDialogViewModel @Inject constructor(
         conditionOperator = conditionOperator,
         actionsItems = actions.toActionsChildrenItem(),
         triggerConditionsItems = conditions.toTriggerConditionsChildrenItem(),
+    )
+    private fun FillerEvent.toFillerEventUiState(
+        hasUnsavedModifications: Boolean,
+        canBeSaved: Boolean,
+    ) = EventDialogUiState.TriggerEvent(
+        canBeSaved = canBeSaved,
+        hasUnsavedModifications = hasUnsavedModifications,
+        name = name,
+        nameError = name.isEmpty(),
+        enabledOnStart = enabledOnStart,
+        conditionOperator = conditionOperator,
+        actionsItems = actions.toActionsChildrenItem(),
+        triggerConditionsItems = emptyList(),
     )
 
     private fun List<TriggerCondition>.toTriggerConditionsChildrenItem(): List<EventChildrenItem> = map { condition ->

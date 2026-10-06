@@ -51,6 +51,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.counter.ComparisonOperation
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.data.ScenarioEditor
 
@@ -111,6 +112,19 @@ class EditedItemsBuilder internal constructor(
             conditions = mutableListOf(),
             actions = mutableListOf(),
         )
+    fun createNewFillerEvent(context: Context): FillerEvent {
+        val eventId = eventsIdCreator.generateNewIdentifier()
+        return FillerEvent(
+            id = eventId,
+            scenarioId = getEditedScenarioIdOrThrow(),
+            name = defaultValues.eventName(context),
+            movement = RandomMovement(
+                id = actionsIdCreator.generateNewIdentifier(),
+                eventId = eventId,
+                priority = 0,
+            ),
+        )
+    }
 
     fun createNewImageEventFrom(from: ScreenEvent, scenarioId: Identifier = getEditedScenarioIdOrThrow()): ScreenEvent {
         val eventId = eventsIdCreator.generateNewIdentifier()
@@ -142,6 +156,15 @@ class EditedItemsBuilder internal constructor(
             },
             actions = from.actions.map { createNewActionFrom(it, eventId) }
         ).also { eventCopyConditionIdMap.clear() }
+    }
+    fun createNewFillerEventFrom(from: FillerEvent, scenarioId: Identifier = getEditedScenarioIdOrThrow()): FillerEvent {
+        val eventId = eventsIdCreator.generateNewIdentifier()
+        return from.copy(
+            id = eventId,
+            scenarioId = scenarioId,
+            name = "" + from.name,
+            movement = createNewActionFrom(from.movement, eventId) as RandomMovement,
+        )
     }
 
     fun createNewColorCondition(context: Context, @ColorInt color: Int, detectionArea: Rect): ScreenCondition.Color {

@@ -35,8 +35,10 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.toDomain
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.toDomainScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.toDomainTriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.toDomainFillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.toDomain
 
@@ -108,10 +110,15 @@ internal class Repository @Inject internal constructor(
         dataSource.getScenarioFlow(scenarioId).map { it?.toDomain() }
 
     override fun getEventsFlow(scenarioId: Long): Flow<List<Event>> =
-        getScreenEventsFlow(scenarioId).combine(getTriggerEventsFlow(scenarioId)) { imgEvts, trigEvts ->
+        combine(
+            getScreenEventsFlow(scenarioId),
+            getTriggerEventsFlow(scenarioId),
+            getFillerEventsFlow(scenarioId),
+        ) { screenEvents, triggerEvents, fillerEvents ->
             buildList {
-                addAll(imgEvts)
-                addAll(trigEvts)
+                addAll(screenEvents)
+                addAll(triggerEvents)
+                addAll(fillerEvents)
             }
         }
 
@@ -126,6 +133,12 @@ internal class Repository @Inject internal constructor(
 
     override fun getTriggerEventsFlow(scenarioId: Long): Flow<List<TriggerEvent>> =
         dataSource.getTriggerEventsFlow(scenarioId).mapList { it.toDomainTriggerEvent() }
+
+    override suspend fun getFillerEvents(scenarioId: Long): List<FillerEvent> =
+        dataSource.getFillerEvents(scenarioId).map { it.toDomainFillerEvent() }
+
+    override fun getFillerEventsFlow(scenarioId: Long): Flow<List<FillerEvent>> =
+        dataSource.getFillerEventsFlow(scenarioId).mapList { it.toDomainFillerEvent() }
 
     override fun getCountersFlow(scenarioId: Long): Flow<List<Counter>> =
         dataSource.getCountersFlow(scenarioId).mapList { it.toDomain() }

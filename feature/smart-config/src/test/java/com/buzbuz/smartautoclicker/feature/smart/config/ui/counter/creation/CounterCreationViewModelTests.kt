@@ -25,6 +25,7 @@ import com.buzbuz.smartautoclicker.core.domain.IRepository
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import io.mockk.coEvery
@@ -88,12 +89,14 @@ class CounterCreationViewModelTests {
         scenario: Scenario,
         screenEvents: List<ScreenEvent> = emptyList(),
         triggerEvents: List<TriggerEvent> = emptyList(),
+        fillerEvents: List<FillerEvent> = emptyList(),
         counters: List<Counter> = emptyList(),
     ): EditionRepository {
         val repository = mockk<IRepository> {
             coEvery { getScenario(scenario.id.databaseId) } returns scenario
             coEvery { getScreenEvents(scenario.id.databaseId) } returns screenEvents
             coEvery { getTriggerEvents(scenario.id.databaseId) } returns triggerEvents
+            coEvery { getFillerEvents(scenario.id.databaseId) } returns fillerEvents
             coEvery { getCounters(scenario.id.databaseId) } returns counters
         }
 

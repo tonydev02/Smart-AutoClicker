@@ -109,6 +109,16 @@ abstract class EventDao {
     @Query("SELECT * FROM $EVENT_TABLE WHERE scenario_id=:scenarioId AND type='TRIGGER_EVENT' ORDER BY name")
     abstract fun getCompleteTriggerEventsFlow(scenarioId: Long): Flow<List<CompleteEventEntity>>
 
+    /** Get complete filler events for a scenario. */
+    @Transaction
+    @Query("SELECT * FROM $EVENT_TABLE WHERE scenario_id=:scenarioId AND type='FILLER_EVENT' ORDER BY name")
+    abstract suspend fun getCompleteFillerEvents(scenarioId: Long): List<CompleteEventEntity>
+
+    /** Observe complete filler events for a scenario. */
+    @Transaction
+    @Query("SELECT * FROM $EVENT_TABLE WHERE scenario_id=:scenarioId AND type='FILLER_EVENT' ORDER BY name")
+    abstract fun getCompleteFillerEventsFlow(scenarioId: Long): Flow<List<CompleteEventEntity>>
+
     /** @return the flow on the count of screen events. */
     @Query("SELECT COUNT(*) FROM $EVENT_TABLE WHERE type='IMAGE_EVENT'")
     abstract fun getScreenEventsCount(): Flow<Int>

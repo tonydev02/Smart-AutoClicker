@@ -26,6 +26,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 
@@ -37,16 +38,18 @@ interface IEditionState {
     val scenarioCompleteState: Flow<EditedElementState<EditedScenarioState>>
     val scenarioState: Flow<EditedElementState<Scenario>>
 
-    // Edited Scenario child items (ImageEvents and TriggerEvents)
+    // Edited Scenario child items (ImageEvents, TriggerEvents and FillerEvents)
     val allEditedEventsFlow: Flow<List<Event>>
     val editedScreenEventsState: Flow<EditedListState<ScreenEvent>>
     val editedTriggerEventsState: Flow<EditedListState<TriggerEvent>>
+    val editedFillerEventsState: Flow<EditedListState<FillerEvent>>
     val allEditedCountersFlow: Flow<List<Counter>>
     val editedCountersState: Flow<EditedListState<Counter>>
 
     // Edited Event
     val editedEventState: Flow<EditedElementState<Event>>
     val editedScreenEventState: Flow<EditedElementState<ScreenEvent>>
+    val editedFillerEventState: Flow<EditedElementState<FillerEvent>>
     val editedTriggerEventState: Flow<EditedElementState<TriggerEvent>>
 
     // Edited Event child conditions

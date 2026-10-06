@@ -35,6 +35,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
 import com.buzbuz.smartautoclicker.core.domain.model.action.Swipe
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepository
 import com.buzbuz.smartautoclicker.core.processing.domain.model.DetectionState
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
@@ -126,8 +127,9 @@ class SmartActionsBriefViewModel @Inject constructor(
     val canCopyActions: Flow<Boolean> = isActionCopyAvailableUseCase()
 
     val actionTypeChoices: StateFlow<List<ActionTypeChoice>> =
-        combine(canCopyActions, isLegacyUiEnabled) { canCopy, legacyEnabled ->
-            buildActionTypeChoices(canCopy, legacyEnabled)
+        combine(canCopyActions, isLegacyUiEnabled, editedEvent) { canCopy, legacyEnabled, event ->
+            if (event is FillerEvent) emptyList()
+            else buildActionTypeChoices(canCopy, legacyEnabled)
         }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val isTutorialModeEnabled: Flow<Boolean> =
@@ -158,6 +160,9 @@ class SmartActionsBriefViewModel @Inject constructor(
         )
     }
 
+    fun isFillerEvent(): Boolean =
+        editionRepository.editionState.getEditedEvent() is FillerEvent
+
     override fun getActionTypeChoices(): List<ActionTypeChoice> =
         actionTypeChoices.value
 
@@ -186,6 +191,7 @@ class SmartActionsBriefViewModel @Inject constructor(
     }
 
     override fun removeEditedAction() {
+        if (editionRepository.editionState.getEditedEvent() is FillerEvent) return
         editionRepository.deleteEditedAction()
     }
 
@@ -237,6 +243,7 @@ class SmartActionsBriefViewModel @Inject constructor(
         editionRepository.updateActionsOrder(actionsBrief.map { brief -> (brief.data as UiAction).action })
 
     fun deleteAction(index: Int) {
+        if (editionRepository.editionState.getEditedEvent() is FillerEvent) return
         val actions = editionRepository.editionState.getEditedEventActions<Action>()?.toMutableList() ?: return
         if (index !in actions.indices) return
 

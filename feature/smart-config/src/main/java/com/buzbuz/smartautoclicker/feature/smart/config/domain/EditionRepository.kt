@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.feature.smart.config.data.ScenarioEditor
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.model.IEditionState
@@ -97,6 +98,7 @@ class EditionRepository @Inject constructor(
             scenario = scenario,
             screenEvents = repository.getScreenEvents(scenarioId),
             triggerEvents = repository.getTriggerEvents(scenarioId),
+            fillerEvents = repository.getFillerEvents(scenarioId),
             counters = repository.getCounters(scenarioId),
         )
         return true

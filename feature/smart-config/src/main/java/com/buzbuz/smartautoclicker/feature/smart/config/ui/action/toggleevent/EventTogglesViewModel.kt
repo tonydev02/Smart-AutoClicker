@@ -23,6 +23,7 @@ import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.domain.model.action.ToggleEvent
 import com.buzbuz.smartautoclicker.core.domain.model.action.toggleevent.EventToggle
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.R
@@ -50,6 +51,9 @@ class EventTogglesViewModel @Inject constructor(
                 val imageEvents = mutableListOf<EventTogglesListItem>().apply {
                     add(EventTogglesListItem.Header(context.getString(R.string.list_header_image_events)))
                 }
+                val fillerEvents = mutableListOf<EventTogglesListItem>().apply {
+                    add(EventTogglesListItem.Header(context.getString(R.string.list_header_filler_events)))
+                }
                 val triggerEvents = mutableListOf<EventTogglesListItem>().apply {
                     add(EventTogglesListItem.Header(context.getString(R.string.list_header_trigger_events)))
                 }
@@ -58,7 +62,7 @@ class EventTogglesViewModel @Inject constructor(
                     .sortedBy { event ->
                         when (event) {
                             is ScreenEvent -> event.priority
-                            is TriggerEvent -> -1
+                            is TriggerEvent, is FillerEvent -> -1
                         }
                     }
                     .forEach { event ->
@@ -69,6 +73,7 @@ class EventTogglesViewModel @Inject constructor(
                         when (event) {
                             is ScreenEvent -> imageEvents.add(item)
                             is TriggerEvent -> triggerEvents.add(item)
+                            is FillerEvent -> fillerEvents.add(item)
                         }
                     }
 
@@ -76,11 +81,19 @@ class EventTogglesViewModel @Inject constructor(
                     is TriggerEvent -> {
                         if (triggerEvents.size > 1) addAll(triggerEvents)
                         if (imageEvents.size > 1) addAll(imageEvents)
+                        if (fillerEvents.size > 1) addAll(fillerEvents)
+                    }
+
+                    is FillerEvent -> {
+                        if (fillerEvents.size > 1) addAll(fillerEvents)
+                        if (imageEvents.size > 1) addAll(imageEvents)
+                        if (triggerEvents.size > 1) addAll(triggerEvents)
                     }
 
                     else -> {
                         if (imageEvents.size > 1) addAll(imageEvents)
                         if (triggerEvents.size > 1) addAll(triggerEvents)
+                        if (fillerEvents.size > 1) addAll(fillerEvents)
                     }
                 }
             }

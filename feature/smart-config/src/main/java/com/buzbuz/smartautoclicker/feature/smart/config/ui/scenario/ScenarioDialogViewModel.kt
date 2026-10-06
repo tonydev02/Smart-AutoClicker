@@ -57,12 +57,14 @@ class ScenarioDialogViewModel @Inject constructor(
         editionRepository.editionState.scenarioState.filterNotNull(),
         editionRepository.editionState.editedScreenEventsState.filterNotNull(),
         editionRepository.editionState.editedTriggerEventsState.filterNotNull(),
-    ) { scenarioState, imageEventsState, triggerEventsState ->
+        editionRepository.editionState.editedFillerEventsState.filterNotNull(),
+    ) { scenarioState, imageEventsState, triggerEventsState, fillerEventsState ->
         buildMap {
-            put(R.id.page_image_events, imageEventsState.canBeSaved &&
-                    (!imageEventsState.value.isNullOrEmpty() || !triggerEventsState.value.isNullOrEmpty()))
-            put(R.id.page_trigger_events, triggerEventsState.canBeSaved &&
-                    (!imageEventsState.value.isNullOrEmpty() || !triggerEventsState.value.isNullOrEmpty()))
+            val haveEvents = !imageEventsState.value.isNullOrEmpty() ||
+                    !triggerEventsState.value.isNullOrEmpty() || !fillerEventsState.value.isNullOrEmpty()
+            put(R.id.page_image_events, imageEventsState.canBeSaved && haveEvents)
+            put(R.id.page_trigger_events, triggerEventsState.canBeSaved && haveEvents)
+            put(R.id.page_filler_events, fillerEventsState.canBeSaved && haveEvents)
             put(R.id.page_config, scenarioState.canBeSaved)
             put(R.id.page_more, true)
         }

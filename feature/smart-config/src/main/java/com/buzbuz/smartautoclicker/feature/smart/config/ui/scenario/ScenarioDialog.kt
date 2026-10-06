@@ -37,6 +37,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.config.Scena
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.imageevents.ImageEventListContent
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.more.MoreContent
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.triggerevents.TriggerEventListContent
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.fillerevents.FillerEventListContent
 
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.navigation.NavigationBarView
@@ -71,6 +72,7 @@ class ScenarioDialog(
     override fun onCreateContent(navItemId: Int): NavBarDialogContent = when (navItemId) {
         R.id.page_image_events -> ImageEventListContent(context.applicationContext)
         R.id.page_trigger_events -> TriggerEventListContent(context.applicationContext)
+        R.id.page_filler_events -> FillerEventListContent(context.applicationContext)
         R.id.page_config -> ScenarioConfigContent(context.applicationContext)
         R.id.page_more -> MoreContent(context.applicationContext)
         else -> throw IllegalArgumentException("Unknown menu id $navItemId")

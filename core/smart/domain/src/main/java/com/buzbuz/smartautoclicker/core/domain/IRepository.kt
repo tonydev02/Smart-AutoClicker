@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 
 import kotlinx.coroutines.flow.Flow
@@ -166,6 +167,12 @@ interface IRepository {
      * @return the list of trigger events.
      */
     fun getTriggerEventsFlow(scenarioId: Long): Flow<List<TriggerEvent>>
+
+    /** Get filler events for a scenario. */
+    suspend fun getFillerEvents(scenarioId: Long): List<FillerEvent>
+
+    /** Observe filler events for a scenario. */
+    fun getFillerEventsFlow(scenarioId: Long): Flow<List<FillerEvent>>
 
     /**
      * Get the list of counters for a given scenario.

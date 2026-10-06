@@ -40,6 +40,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.Webhook
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepository
 import com.buzbuz.smartautoclicker.core.processing.domain.model.DetectionState
@@ -127,6 +128,7 @@ private fun Event.getDebugIcon(): Int =
     when (this) {
         is ScreenEvent -> R.drawable.ic_condition
         is TriggerEvent -> R.drawable.ic_trigger_event
+        is FillerEvent -> R.drawable.ic_swipe
     }
 
 @DrawableRes

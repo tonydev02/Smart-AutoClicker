@@ -27,6 +27,11 @@
         android:icon="@drawable/ic_trigger_event"
         android:title="@string/menu_item_title_trigger_events"/>
     <item
+        android:id="@+id/page_filler_events"
+        android:enabled="true"
+        android:icon="@drawable/ic_gesture_record"
+        android:title="@string/menu_item_title_filler_events"/>
+    <item
         android:id="@+id/page_config"
         android:enabled="true"
         android:icon="@drawable/ic_settings"

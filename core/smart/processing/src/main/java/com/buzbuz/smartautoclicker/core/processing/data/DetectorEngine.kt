@@ -190,6 +190,7 @@ class DetectorEngine @Inject constructor(
         liveDebugging: Boolean,
         generateReport: Boolean,
         imageDetectorFactory: () -> ImageDetector? = NativeDetector::newInstance,
+        fillerEvents: List<com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent> = emptyList(),
     ) {
         if (_state.value != DetectorState.RECORDING) {
             Log.w(TAG, "startDetection: Screen record is not started.")
@@ -264,6 +265,7 @@ class DetectorEngine @Inject constructor(
                 androidExecutor = actionExecutor,
                 unblockWorkaroundEnabled = settingsRepository.isInputBlockWorkaroundEnabled(),
                 onStopRequested = { stopDetection() },
+                fillerEvents = fillerEvents,
                 progressListener  = if (liveDebugging || generateReport) debuggingListener else null,
             )
             scenarioProcessor?.onScenarioStart(context)

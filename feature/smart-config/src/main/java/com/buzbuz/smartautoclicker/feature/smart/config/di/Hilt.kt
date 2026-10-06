@@ -69,6 +69,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.ScenarioDial
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.config.ScenarioConfigViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.imageevents.ImageEventListViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.more.MoreViewModel
+import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.fillerevents.FillerEventListViewModel
 import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.triggerevents.TriggerEventListViewModel
 
 import dagger.hilt.EntryPoint
@@ -106,6 +107,7 @@ interface ScenarioConfigViewModelsEntryPoint {
     fun screenConditionsBriefViewModel(): ScreenConditionsBriefViewModel
     fun imageConditionViewModel(): ImageConditionViewModel
     fun imageEventListViewModel(): ImageEventListViewModel
+    fun fillerEventListViewModel(): FillerEventListViewModel
     fun intentActionsSelectionViewModel(): IntentActionsSelectionViewModel
     fun intentViewModel(): IntentViewModel
     fun liveDebuggingViewModel(): LiveDebuggingViewModel

@@ -18,18 +18,20 @@ package com.buzbuz.smartautoclicker.core.processing.data.processor.state
 
 import com.buzbuz.smartautoclicker.core.base.interfaces.sortedByPriority
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
-
 interface IEventsState {
 
     fun isEventEnabled(eventId: Long): Boolean
     fun areAllEventsDisabled(): Boolean
     fun areAllScreenEventsDisabled(): Boolean
     fun areAllTriggerEventsDisabled(): Boolean
+    fun areAllFillerEventsDisabled(): Boolean
 
     fun getScreenEvents(): Collection<ScreenEvent>
     fun getTriggerEvents(): Collection<TriggerEvent>
+    fun getFillerEvents(): Collection<FillerEvent>
 
     fun enableAll()
     fun enableEvent(eventId: Long)
@@ -56,23 +58,31 @@ interface EventStateListener {
 internal class EventsState(
     screenEvents: List<ScreenEvent>,
     triggerEvents: List<TriggerEvent>,
+    fillerEvents: List<FillerEvent> = emptyList(),
 ) : IEventsState {
 
     /** Monitor the state of all image events. */
     private val screenEventList: EventList<ScreenEvent> = EventList(screenEvents)
     /** Monitor the state of all trigger events. */
     private val triggerEventList: EventList<TriggerEvent> = EventList(triggerEvents)
+    /** Monitor the state of mutually exclusive background fillers. */
+    private val fillerEventList: EventList<FillerEvent> = EventList(fillerEvents, singleEnabled = true)
 
     override fun setEventStateListener(listener: EventStateListener) {
         triggerEventList.eventEnabledListener = listener
         screenEventList.eventEnabledListener = listener
+        fillerEventList.eventEnabledListener = listener
     }
 
     override fun isEventEnabled(eventId: Long): Boolean =
-        triggerEventList.isEventEnabled(eventId) || screenEventList.isEventEnabled(eventId)
+        triggerEventList.isEventEnabled(eventId) ||
+                screenEventList.isEventEnabled(eventId) ||
+                fillerEventList.isEventEnabled(eventId)
 
     override fun areAllEventsDisabled(): Boolean =
-        screenEventList.areAllEventsDisabled() && triggerEventList.areAllEventsDisabled()
+        screenEventList.areAllEventsDisabled() &&
+                triggerEventList.areAllEventsDisabled() &&
+                fillerEventList.areAllEventsDisabled()
 
     override fun areAllScreenEventsDisabled(): Boolean =
         screenEventList.areAllEventsDisabled()
@@ -86,7 +96,17 @@ internal class EventsState(
     override fun getTriggerEvents(): Collection<TriggerEvent> =
         triggerEventList.getEvents().toList()
 
+    override fun areAllFillerEventsDisabled(): Boolean =
+        fillerEventList.areAllEventsDisabled()
+
+    override fun getFillerEvents(): Collection<FillerEvent> =
+        fillerEventList.getEvents().toList()
+
     override fun enableEvent(eventId: Long) {
+        fillerEventList.getEvent(eventId)?.let { filler ->
+            fillerEventList.disableAllExcept(eventId)
+            fillerEventList.enableEvent(filler.id.databaseId)
+        }
         screenEventList.enableEvent(eventId)
         triggerEventList.enableEvent(eventId)
     }
@@ -94,37 +114,42 @@ internal class EventsState(
     override fun disableEvent(eventId: Long) {
         screenEventList.disableEvent(eventId)
         triggerEventList.disableEvent(eventId)
+        fillerEventList.disableEvent(eventId)
     }
 
     override fun toggleEvent(eventId: Long) {
-        screenEventList.toggleEvent(eventId)
-        triggerEventList.toggleEvent(eventId)
+        if (isEventEnabled(eventId)) disableEvent(eventId) else enableEvent(eventId)
     }
 
     override fun enableAll() {
         screenEventList.enableAll()
         triggerEventList.enableAll()
+        fillerEventList.enableAll()
     }
 
     override fun disableAll() {
         screenEventList.disableAll()
         triggerEventList.disableAll()
+        fillerEventList.disableAll()
     }
 
     override fun toggleAll() {
         screenEventList.toggleAll()
         triggerEventList.toggleAll()
+        fillerEventList.toggleAll()
     }
 }
 
-private class EventList<T : Event>(events: List<T>) {
+private class EventList<T : Event>(events: List<T>, private val singleEnabled: Boolean = false) {
 
     /** Set of enabled events ids. */
     private val enabledEventsMap: MutableMap<Long, T> = mutableMapOf()
     /** Map of the all events. */
     private val eventsMap: Map<Long, T> = buildMap {
         events.forEach { event ->
-            if (event.enabledOnStart) enabledEventsMap[event.getValidId()] = event
+            if (event.enabledOnStart && (!singleEnabled || enabledEventsMap.isEmpty())) {
+                enabledEventsMap[event.getValidId()] = event
+            }
             put(event.getValidId(), event)
         }
     }
@@ -140,9 +165,16 @@ private class EventList<T : Event>(events: List<T>) {
     fun getEvents(): Collection<T> =
         eventsMap.values
 
+    fun getEvent(eventId: Long): T? = eventsMap[eventId]
+
+    fun disableAllExcept(eventId: Long) {
+        enabledEventsMap.keys.toList().filter { it != eventId }.forEach(::disableEvent)
+    }
+
     fun enableEvent(eventId: Long) {
         if (enabledEventsMap.containsKey(eventId)) return
         val event = eventsMap[eventId] ?: return
+        if (singleEnabled) disableAllExcept(eventId)
 
         enabledEventsMap[eventId] = event
         eventEnabledListener?.onEventEnabled(event)

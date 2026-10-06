@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.counter.GetCounterReadReferencesUseCase
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.counter.model.CounterReference
@@ -79,6 +80,7 @@ class CounterReferenceViewModel @Inject constructor(
         val eventIcon = when (event) {
             is ScreenEvent -> R.drawable.ic_screen_event
             is TriggerEvent -> R.drawable.ic_trigger_event
+            is FillerEvent -> R.drawable.ic_gesture_record
         }
 
         return when (this) {

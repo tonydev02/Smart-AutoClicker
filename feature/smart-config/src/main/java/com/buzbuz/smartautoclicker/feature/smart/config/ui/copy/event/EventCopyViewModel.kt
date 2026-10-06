@@ -24,6 +24,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.R
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.copy.GetScreenEventsForCopyUseCase
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.copy.GetTriggerEventsForCopyUseCase
@@ -131,22 +132,27 @@ class EventCopyViewModel @Inject constructor(
         when (this) {
             is ScreenEvent -> editionRepository.editedItemsBuilder.createNewImageEventFrom(this)
             is TriggerEvent -> editionRepository.editedItemsBuilder.createNewTriggerEventFrom(this)
+            is FillerEvent -> editionRepository.editedItemsBuilder.createNewFillerEventFrom(this)
         }
 
-    private fun List<Event>.toCopyItems(checked: Map<Identifier, Event>): List<EventCopyItem.EventItem> = map { event ->
-        when (event) {
-            is ScreenEvent -> EventCopyItem.EventItem.Image(
-                name = event.name,
-                uiEvent = event.toUiImageEvent(inError = !event.isComplete()),
-                actionsIcons = event.actions.map { it.getIconRes() },
-                checked = checked.contains(event.id),
-            )
+    private fun List<Event>.toCopyItems(checked: Map<Identifier, Event>): List<EventCopyItem.EventItem> =
+        mapNotNull { event ->
+            when (event) {
+                is ScreenEvent -> EventCopyItem.EventItem.Image(
+                    name = event.name,
+                    uiEvent = event.toUiImageEvent(inError = !event.isComplete()),
+                    actionsIcons = event.actions.map { it.getIconRes() },
+                    checked = checked.contains(event.id),
+                )
 
-            is TriggerEvent -> EventCopyItem.EventItem.Trigger(
-                name = event.name,
-                uiEvent = event.toUiTriggerEvent(inError = !event.isComplete()),
-                checked = checked.contains(event.id),
-            )
+                is TriggerEvent -> EventCopyItem.EventItem.Trigger(
+                    name = event.name,
+                    uiEvent = event.toUiTriggerEvent(inError = !event.isComplete()),
+                    checked = checked.contains(event.id),
+                )
+
+                // This copy flow only displays screen and trigger events.
+                is FillerEvent -> null
+            }
         }
-    }
 }

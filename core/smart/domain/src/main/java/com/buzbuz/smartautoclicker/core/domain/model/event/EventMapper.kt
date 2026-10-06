@@ -25,11 +25,14 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.mapper.toDomain
 import com.buzbuz.smartautoclicker.core.domain.model.condition.ScreenCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.condition.toDomain
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
+import com.buzbuz.smartautoclicker.core.domain.model.action.mapper.toEntity
 
 internal fun Event.toEntity(): EventEntity =
     when (this) {
         is ScreenEvent -> toEntity()
         is TriggerEvent -> toEntity()
+        is FillerEvent -> toEntity()
     }
 
 /** @return the entity equivalent of this event. */
@@ -56,12 +59,23 @@ private fun TriggerEvent.toEntity() : EventEntity =
         type = EventType.TRIGGER_EVENT,
     )
 
+private fun FillerEvent.toEntity() = EventEntity(
+    id = id.databaseId,
+    scenarioId = scenarioId.databaseId,
+    name = name,
+    conditionOperator = conditionOperator,
+    priority = -1,
+    enabledOnStart = enabledOnStart,
+    type = EventType.FILLER_EVENT,
+)
+
 
 /** @return the complete event for this entity. */
 internal fun CompleteEventEntity.toDomain(cleanIds: Boolean = false): Event =
     when (event.type) {
         EventType.IMAGE_EVENT -> toDomainScreenEvent(cleanIds)
         EventType.TRIGGER_EVENT -> toDomainTriggerEvent(cleanIds)
+        EventType.FILLER_EVENT -> toDomainFillerEvent(cleanIds)
     }
 
 /** @return the complete event for this entity. */
@@ -89,4 +103,14 @@ internal fun CompleteEventEntity.toDomainTriggerEvent(cleanIds: Boolean = false)
         enabledOnStart = event.enabledOnStart,
         actions = actions.map { it.toDomain(cleanIds) }.sortedByPriority().toMutableList(),
         conditions = conditions.mapNotNull { it.toDomain(cleanIds) as? TriggerCondition }.toMutableList(),
+    )
+
+/** @return the filler event for this entity. */
+internal fun CompleteEventEntity.toDomainFillerEvent(cleanIds: Boolean = false): FillerEvent =
+    FillerEvent(
+        id = Identifier(id = event.id, asTemporary = cleanIds),
+        scenarioId = Identifier(id = event.scenarioId, asTemporary = cleanIds),
+        name = event.name,
+        enabledOnStart = event.enabledOnStart,
+        movement = actions.single().toDomain(cleanIds) as RandomMovement,
     )

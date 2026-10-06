@@ -27,6 +27,8 @@ enum class EventType {
     IMAGE_EVENT,
     /** The conditions of the event are triggers. */
     TRIGGER_EVENT,
+    /** The event executes a single random movement action. */
+    FILLER_EVENT,
 }
 
 /**

@@ -116,6 +116,12 @@ internal class ScenarioDataSource @Inject constructor(
     fun getTriggerEventsFlow(scenarioId: Long): Flow<List<CompleteEventEntity>> =
         database.eventDao().getCompleteTriggerEventsFlow(scenarioId)
 
+    suspend fun getFillerEvents(scenarioId: Long): List<CompleteEventEntity> =
+        database.eventDao().getCompleteFillerEvents(scenarioId)
+
+    fun getFillerEventsFlow(scenarioId: Long): Flow<List<CompleteEventEntity>> =
+        database.eventDao().getCompleteFillerEventsFlow(scenarioId)
+
     fun getAllConditions(): Flow<List<ConditionEntity>> =
         database.conditionDao().getAllConditions()
 

@@ -16,6 +16,7 @@
  */
 package com.buzbuz.smartautoclicker.core.domain.model.event
 
+import com.buzbuz.smartautoclicker.core.domain.model.action.RandomMovement
 import androidx.annotation.CallSuper
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.base.interfaces.Completable
@@ -60,6 +61,9 @@ sealed class Event: Identifiable, Completable {
                 enabledOnStart = enabledOnStart, actions = actions, conditions = conditions as List<ScreenCondition.Image>)
             is TriggerEvent -> copy(id = id, scenarioId = scenarioId, name = name, conditionOperator = conditionOperator,
                 enabledOnStart = enabledOnStart, actions = actions, conditions = conditions as List<TriggerCondition>)
+            is FillerEvent -> copy(id = id, scenarioId = scenarioId, name = name,
+                enabledOnStart = enabledOnStart,
+                movement = (actions.singleOrNull() as? RandomMovement) ?: movement)
         }
 
     @CallSuper
@@ -129,4 +133,17 @@ data class TriggerEvent(
             else -> true
         }
     }
+}
+data class FillerEvent(
+    override val id: Identifier,
+    override val scenarioId: Identifier,
+    override val name: String,
+    override val enabledOnStart: Boolean = true,
+    val movement: RandomMovement,
+) : Event() {
+    override val conditionOperator: Int = 0
+    override val actions: List<Action> = listOf(movement)
+    override val conditions: List<Condition> = emptyList()
+
+    override fun isComplete(): Boolean = name.isNotEmpty() && movement.isComplete()
 }

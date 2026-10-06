@@ -28,6 +28,7 @@
 ## Key Features:
 * **Click and Swipes**: Automate clicks and swipes with precision by configuring press durations, swipe durations, and positions. Trigger actions on detected images to interact seamlessly with dynamic elements.
 * **Multi-touch Actions**: Configure two-finger presses, drags, or random-area movement with optional end positions for each finger.
+* **Filler Events**: Run a configured random-area movement continuously in the background; image and trigger event actions take priority, and event toggles select which filler runs.
 * **Randomized Pauses**: Set pause actions to a fixed duration or an inclusive random duration range.
 * **Advanced Automation**: Enhance your automation scripts with advanced features like counters operations, Android Intents, and flow control, giving you unparalleled flexibility.
 * **Webhooks**: Send Telegram Bot messages or custom HTTPS POST requests with counter values resolved when the action runs; Telegram bot tokens are included in scenario exports.

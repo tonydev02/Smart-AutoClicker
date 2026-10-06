@@ -26,6 +26,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.domain.EventType
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
@@ -147,6 +148,7 @@ internal class DebugEngine @Inject constructor(
                         fulfilled = fulfilled,
                         results = results as List<ProcessedConditionResult.Trigger>,
                     )
+                    is FillerEvent -> null
                 }
             }
         }
@@ -168,6 +170,7 @@ internal class DebugEngine @Inject constructor(
 
                 is TriggerEvent ->
                     writeTriggerEventToReport(event, results as List<ProcessedConditionResult.Trigger>)
+                is FillerEvent -> Unit
             }
         }
     }

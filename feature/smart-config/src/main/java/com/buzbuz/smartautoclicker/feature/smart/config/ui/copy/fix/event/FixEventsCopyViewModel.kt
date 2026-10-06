@@ -22,6 +22,7 @@ import androidx.lifecycle.viewModelScope
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.feature.smart.config.R
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.EditionRepository
 import com.buzbuz.smartautoclicker.feature.smart.config.domain.usecase.copy.unreachable.IsEventRelatedToUnreachableItemUseCase
@@ -86,12 +87,13 @@ class FixEventsCopyViewModel @Inject constructor(
         val items = buildList {
             add(FixCopyUiItem.Header(R.string.item_header_event_copy_fix))
             addAll(
-                this@toUiState.map { event ->
+                this@toUiState.mapNotNull { event ->
+                    val uiEvent = event.toUiEvent() ?: return@mapNotNull null
                     val isEventValid = event.isComplete() && !isEventRelatedToUnreachableItemUseCase(event, getResultingEventList())
                     isCopyValid = isCopyValid && isEventValid
                     FixCopyUiItem.Item.EventItem(
-                        uiEvent = event.toUiEvent(),
-                        isValidForCopy = isEventValid
+                        uiEvent = uiEvent,
+                        isValidForCopy = isEventValid,
                     )
                 }
             )
@@ -103,9 +105,10 @@ class FixEventsCopyViewModel @Inject constructor(
         )
     }
 
-    private fun Event.toUiEvent(): UiEvent =
+    private fun Event.toUiEvent(): UiEvent? =
         when (this) {
             is ScreenEvent -> toUiImageEvent(false)
             is TriggerEvent -> toUiTriggerEvent(false)
+            is FillerEvent -> null // Fillers aren't part of the screen/trigger fix-copy UI.
         }
 }

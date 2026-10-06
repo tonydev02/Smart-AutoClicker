@@ -19,6 +19,7 @@ package com.buzbuz.smartautoclicker.core.smart.debugging.engine.recorder
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import javax.inject.Inject
 
@@ -59,6 +60,7 @@ internal class DebugReportOverviewRecorder @Inject constructor() {
         when (event) {
             is ScreenEvent -> imageEventFulfilledCount += 1
             is TriggerEvent -> triggerEventFulfilledCount += 1
+            is FillerEvent -> Unit
         }
     }
 

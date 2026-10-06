@@ -168,14 +168,20 @@
     <!-- Dialog Scenario =========================================================================================== -->
 
     <string name="dialog_title_scenario_config">Scenario</string>
+    <string name="dialog_title_filler_event">Filler Event</string>
 
     <string name="message_empty_screen_event_title">No screen events !</string>
     <string name="message_empty_screen_event_desc">A screen event contains a set of actions executed when a specific condition is detected on the screen.\nYou need at least one screen or trigger event in your scenario to execute it.</string>
     <string name="message_empty_trigger_event_list_title">No trigger events !</string>
     <string name="message_empty_trigger_event_list_desc">A trigger event contains a set of actions executed when a set of custom conditions are met.\nYou need at least one screen or trigger event in your scenario to execute it.</string>
+    <string name="message_empty_filler_event_list_title">No filler events !</string>
+    <string name="message_empty_filler_event_list_desc">Filler events define a random movement that repeats whenever no other event is executing actions.</string>
+
 
     <string name="menu_item_title_image_events">Screen</string>
     <string name="menu_item_title_trigger_events">Triggers</string>
+    <string name="menu_item_title_filler_events">Fillers</string>
+
     <string name="menu_item_title_more">More</string>
 
     <string name="field_scenario_keep_screen_on_title">Keep screen on</string>
@@ -498,6 +504,10 @@
 
     <string name="list_header_image_events">Screen Events</string>
     <string name="list_header_trigger_events">Trigger Events</string>
+    <string name="list_header_filler_events">Filler Events</string>
+
+    <string name="item_filler_movement_configured">Random movement configured</string>
+    <string name="item_filler_movement_needs_configuration">Configure the random movement</string>
 
     <string name="field_change_all_title">Change all</string>
     <string name="field_change_all_desc_manual">Define the events to change manually</string>

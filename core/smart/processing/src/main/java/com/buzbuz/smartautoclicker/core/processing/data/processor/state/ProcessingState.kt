@@ -21,6 +21,7 @@ import android.content.Context
 import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
 import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
@@ -30,7 +31,9 @@ internal class ProcessingState(
     triggerEvents: List<TriggerEvent>,
     counters: List<Counter>,
     private val progressListener: SmartProcessingListener?,
-    private val eventsState: EventsState = EventsState(screenEvents, triggerEvents),
+    fillerEvents: List<FillerEvent> = emptyList(),
+    private val onFillerEventStateChanged: (FillerEvent, Boolean) -> Unit = { _, _ -> },
+    private val eventsState: EventsState = EventsState(screenEvents, triggerEvents, fillerEvents),
     private val broadcastsState: BroadcastsState = BroadcastsState(triggerEvents),
     private val countersState: CountersState = CountersState(counters, progressListener),
     private val timersState: TimersState = TimersState(triggerEvents),
@@ -64,6 +67,7 @@ internal class ProcessingState(
             if (condition is TriggerCondition.OnTimerReached) timersState.setTimerStartToNow(condition)
         }
 
+        if (event is FillerEvent) onFillerEventStateChanged(event, true)
         progressListener?.onEventStateChanged(event = event, newValue = true)
     }
 
@@ -73,6 +77,7 @@ internal class ProcessingState(
         }
 
         if (event is ScreenEvent) cooldownState.removeCooldown(event)
+        if (event is FillerEvent) onFillerEventStateChanged(event, false)
         progressListener?.onEventStateChanged(event = event, newValue = false)
     }
 }

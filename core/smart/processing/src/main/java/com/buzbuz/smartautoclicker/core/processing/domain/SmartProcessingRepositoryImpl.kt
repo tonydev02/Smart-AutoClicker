@@ -158,6 +158,7 @@ internal class SmartProcessingRepositoryImpl @Inject constructor(
         val scenario = scenarioRepository.getScenario(id) ?: return
         val events = scenarioRepository.getScreenEvents(id)
         val triggerEvents = scenarioRepository.getTriggerEvents(id)
+        val fillerEvents = scenarioRepository.getFillerEvents(id)
         val counters = scenarioRepository.getCounters(id)
 
         detectorEngine.startDetection(
@@ -168,6 +169,7 @@ internal class SmartProcessingRepositoryImpl @Inject constructor(
             counters = counters,
             liveDebugging = liveDebugging,
             generateReport = generateReport,
+            fillerEvents = fillerEvents,
         )
 
         autoStopDuration?.let { duration ->

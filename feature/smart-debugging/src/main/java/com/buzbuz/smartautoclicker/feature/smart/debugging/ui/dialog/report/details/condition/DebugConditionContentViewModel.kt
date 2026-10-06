@@ -42,6 +42,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.CounterOperationVal
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.model.report.DebugReportConditionResult
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.model.report.DebugReportEventOccurrence
 import com.buzbuz.smartautoclicker.core.ui.utils.formatDuration
@@ -137,6 +138,7 @@ class DebugConditionContentViewModel @Inject constructor(
         when (event) {
             is ScreenEvent -> (this@toItems as? List<DebugReportConditionResult.ScreenCondition>)?.toImageItems(context, event)
             is TriggerEvent -> (this@toItems as? List<DebugReportConditionResult.TriggerCondition>)?.toTriggerItems(context, event)
+            is FillerEvent -> null
         } ?: emptyList()
 
     private fun List<DebugReportConditionResult.ScreenCondition>.toImageItems(
