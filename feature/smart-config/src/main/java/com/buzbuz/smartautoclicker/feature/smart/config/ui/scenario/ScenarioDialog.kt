@@ -50,7 +50,7 @@ import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.monitoring.
 class ScenarioDialog(
     private val onConfigSaved: () -> Unit,
     private val onConfigDiscarded: () -> Unit,
-) : NavBarDialog(R.style.ScenarioConfigTheme) {
+) : NavBarDialog(R.style.ScenarioDialogTheme) {
 
     override fun tutorialMonitoringTag(): String = MonitoredOverlayType.SCENARIO.name
 
@@ -162,7 +162,12 @@ private const val TAG = "ScenarioDialog"
 
 internal fun NavigationBarView.configureScenarioNavigationRail(context: Context) {
     if (this is NavigationRailView) {
-        itemMinimumHeight =
-            context.resources.getDimensionPixelSize(R.dimen.scenario_navigation_rail_item_min_height)
+        val itemHeight = context.resources.getDimensionPixelSize(R.dimen.scenario_navigation_rail_item_min_height)
+        itemMinimumHeight = itemHeight
+        collapsedItemMinimumHeight = itemHeight
+        itemSpacing = 0
+        itemPaddingTop = 0
+        itemPaddingBottom = 0
+        setCollapsedItemSpacing(0)
     }
 }

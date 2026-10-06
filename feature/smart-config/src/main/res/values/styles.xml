@@ -20,6 +20,10 @@
     <!-- Base theme. -->
     <style name="AppTheme.ScenarioConfig" />
 
+    <style name="AppTheme.ScenarioConfig.NavigationRail" parent="Widget.MaterialComponents.NavigationRailView">
+        <item name="contentMarginTop">0dp</item>
+    </style>
+
     <!-- Base theme for the selector overlays. -->
     <style name="AppTheme.ScenarioConfig.Selector">
         <item name="colorBackground">@color/overlayClickSelectorBackground</item>

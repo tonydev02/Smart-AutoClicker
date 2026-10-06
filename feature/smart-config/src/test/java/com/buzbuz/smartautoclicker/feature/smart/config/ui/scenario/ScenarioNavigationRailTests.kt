@@ -11,14 +11,14 @@ package com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario
 import android.content.Context
 import android.graphics.Rect
 import android.view.ContextThemeWrapper
+import android.view.LayoutInflater
 import android.view.View
 import android.view.View.MeasureSpec
 import androidx.test.core.app.ApplicationProvider
+import com.buzbuz.smartautoclicker.core.common.overlays.databinding.DialogBaseNavBarBinding
 import com.buzbuz.smartautoclicker.feature.smart.config.R
-import com.google.android.material.navigation.NavigationBarView
-import com.google.android.material.navigationrail.NavigationRailView
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,30 +26,35 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [android.os.Build.VERSION_CODES.Q])
+@Config(sdk = [android.os.Build.VERSION_CODES.Q], qualifiers = "land")
 class ScenarioNavigationRailTests {
 
     @Test
-    fun allFiveDestinationsFitAndRemainSelectableInShortLandscapeRail() {
+    fun allFiveDestinationsFitAndRemainSelectableInShortLandscapeDialog() {
         val appContext = ApplicationProvider.getApplicationContext<Context>()
-        val context = ContextThemeWrapper(appContext, R.style.ScenarioConfigTheme)
-        val rail = NavigationRailView(context)
-        rail.labelVisibilityMode = NavigationBarView.LABEL_VISIBILITY_UNLABELED
+        val context = ContextThemeWrapper(appContext, R.style.ScenarioDialogTheme)
+        val binding = DialogBaseNavBarBinding.inflate(LayoutInflater.from(context))
+        val rail = requireNotNull(binding.navBar)
         rail.inflateMenu(R.menu.menu_scenario_config)
         rail.configureScenarioNavigationRail(context)
 
+        val density = context.resources.displayMetrics.density
         val itemMinHeight = context.resources.getDimensionPixelSize(R.dimen.scenario_navigation_rail_item_min_height)
-        assertEquals(48f, context.resources.getDimension(R.dimen.scenario_navigation_rail_item_min_height) /
-            context.resources.displayMetrics.density)
+        assertEquals((48 * density).toInt(), itemMinHeight)
         assertEquals(itemMinHeight, rail.itemMinimumHeight)
+        assertEquals(itemMinHeight, rail.collapsedItemMinimumHeight)
+        assertFalse("Scenario rail must stay collapsed", rail.isExpanded)
+        assertEquals(0, rail.itemSpacing)
+        assertEquals(0, rail.itemPaddingTop)
+        assertEquals(0, rail.itemPaddingBottom)
 
-        val viewportHeight = (288 * context.resources.displayMetrics.density).toInt()
-        val viewportWidth = (80 * context.resources.displayMetrics.density).toInt()
-        rail.measure(
+        val viewportWidth = (800 * density).toInt()
+        val viewportHeight = (325 * density).toInt()
+        binding.root.measure(
             MeasureSpec.makeMeasureSpec(viewportWidth, MeasureSpec.EXACTLY),
             MeasureSpec.makeMeasureSpec(viewportHeight, MeasureSpec.EXACTLY),
         )
-        rail.layout(0, 0, rail.measuredWidth, rail.measuredHeight)
+        binding.root.layout(0, 0, binding.root.measuredWidth, binding.root.measuredHeight)
 
         val destinationIds = listOf(
             R.id.page_image_events,
@@ -58,16 +63,28 @@ class ScenarioNavigationRailTests {
             R.id.page_config,
             R.id.page_more,
         )
+        val itemBounds = destinationIds.associateWith { destinationId ->
+            val itemView = requireNotNull(rail.findViewById<View>(destinationId))
+            Rect(0, 0, itemView.width, itemView.height).also { bounds ->
+                rail.offsetDescendantRectToMyCoords(itemView, bounds)
+            }
+        }
+        val moreBounds = itemBounds.getValue(R.id.page_more)
+        assertTrue(
+            "More is clipped: bounds=$moreBounds railHeight=${rail.height}, " +
+                "itemMinHeight=${rail.itemMinimumHeight}, collapsedMinHeight=${rail.collapsedItemMinimumHeight}, " +
+                "effectiveItemSpacing=${rail.itemSpacing}, allBounds=$itemBounds",
+            moreBounds.top >= 0 && moreBounds.bottom <= rail.height,
+        )
+
         destinationIds.forEach { destinationId ->
-            val itemView = rail.findViewById<View>(destinationId)
-            assertNotNull("Missing navigation destination $destinationId", itemView)
-            val itemBounds = Rect(0, 0, itemView.width, itemView.height)
-            rail.offsetDescendantRectToMyCoords(itemView, itemBounds)
+            val bounds = itemBounds.getValue(destinationId)
             assertTrue(
-                "Destination is clipped: $destinationId bounds=$itemBounds railHeight=${rail.height}",
-                itemBounds.top >= 0 && itemBounds.bottom <= rail.height,
+                "Destination is clipped: $destinationId bounds=$bounds",
+                bounds.top >= 0 && bounds.bottom <= rail.height,
             )
-            assertTrue("Destination is too small: $destinationId", itemView.height >= itemMinHeight)
+            assertEquals(itemMinHeight, bounds.height())
+            val itemView = requireNotNull(rail.findViewById<View>(destinationId))
             assertTrue("Destination is not selectable: $destinationId", itemView.performClick())
             assertEquals(destinationId, rail.selectedItemId)
         }

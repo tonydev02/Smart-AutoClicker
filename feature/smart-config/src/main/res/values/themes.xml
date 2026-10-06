@@ -23,4 +23,8 @@
         <item name="pixelSelectorStyle">@style/AppTheme.ScenarioConfig.Selector.Pixel</item>
     </style>
 
+    <style name="ScenarioDialogTheme" parent="ScenarioConfigTheme">
+        <item name="navigationRailStyle">@style/AppTheme.ScenarioConfig.NavigationRail</item>
+    </style>
+
 </resources>
