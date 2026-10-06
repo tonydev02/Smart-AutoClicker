@@ -38,4 +38,23 @@ internal class FillerEventsEditor(
     ): FillerEvent = event.copy(
         movement = actions.singleOrNull() as? RandomMovement ?: event.movement,
     )
+
+    override fun upsertEditedItem() {
+        val editedFiller = editedItem.value ?: return
+        super.upsertEditedItem()
+
+        val events = editedList.value ?: return
+        val enabledFillerId = if (editedFiller.enabledOnStart) {
+            editedFiller.id
+        } else {
+            events.asSequence()
+                .filter { it.enabledOnStart }
+                .minByOrNull { it.id.databaseId }
+                ?.id
+        }
+
+        updateList(events.map { event ->
+            event.copy(enabledOnStart = event.id == enabledFillerId)
+        })
+    }
 }

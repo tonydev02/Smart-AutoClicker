@@ -159,6 +159,47 @@ class DeserializerTests {
         assertEquals(fillerScenario, restored)
     }
 
+
+    @Test
+    fun currentVersionAcceptsMultipleEnabledFillersFromBackups() {
+        val sourceEvent = DEFAULT_COMPLETE_SCENARIO.events.single()
+        val fillerScenario = DEFAULT_COMPLETE_SCENARIO.copy(
+            events = (1L..2L).map { eventId ->
+                sourceEvent.copy(
+                    event = sourceEvent.event.copy(
+                        id = eventId,
+                        type = EventType.FILLER_EVENT,
+                        enabledOnStart = true,
+                    ),
+                    conditions = emptyList(),
+                    actions = listOf(
+                        CompleteActionEntity(
+                            action = ActionEntity(
+                                id = eventId,
+                                eventId = eventId,
+                                priority = 0,
+                                name = "Random movement",
+                                type = ActionType.RANDOM_MOVEMENT,
+                                randomAreaLeft = 10,
+                                randomAreaTop = 20,
+                                randomAreaRight = 30,
+                                randomAreaBottom = 40,
+                                randomAreaDuration = 3_000L,
+                            ),
+                            intentExtras = emptyList(),
+                            eventsToggle = emptyList(),
+                        ),
+                    ),
+                )
+            },
+        )
+
+        val restored = DeserializerFactory.create(DATABASE_VERSION)
+            ?.deserializeCompleteScenario(fillerScenario.encodeToJsonObject())
+
+        assertEquals(fillerScenario, restored)
+        assertEquals(2, restored?.events?.count { it.event.enabledOnStart })
+    }
     @Test
     fun currentVersionRoundTripsRandomRangePauseSpread() {
         val rangeScenario = DEFAULT_COMPLETE_SCENARIO.copy(

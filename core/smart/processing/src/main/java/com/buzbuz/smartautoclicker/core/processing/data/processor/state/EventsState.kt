@@ -124,7 +124,6 @@ internal class EventsState(
     override fun enableAll() {
         screenEventList.enableAll()
         triggerEventList.enableAll()
-        fillerEventList.enableAll()
     }
 
     override fun disableAll() {
@@ -136,7 +135,9 @@ internal class EventsState(
     override fun toggleAll() {
         screenEventList.toggleAll()
         triggerEventList.toggleAll()
-        fillerEventList.toggleAll()
+        if (!fillerEventList.areAllEventsDisabled()) {
+            fillerEventList.disableAll()
+        }
     }
 }
 

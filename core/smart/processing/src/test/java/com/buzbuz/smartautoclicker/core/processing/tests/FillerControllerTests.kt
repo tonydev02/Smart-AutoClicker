@@ -121,6 +121,23 @@ class FillerControllerTests {
         assertTrue(state.isEventEnabled(second.id.databaseId))
     }
 
+    @Test
+    fun malformedMultipleEnabledOnStartFillersStillSelectAtMostOne() = runTest {
+        val calls = mutableListOf<Long>()
+        val controller = FillerController(listOf(filler(1, true), filler(2, true)), backgroundScope) { event, _ ->
+            calls += event.id.databaseId
+            awaitCancellation()
+        }
+        controller.start()
+
+        runCurrent()
+
+        assertEquals(listOf(1L), calls)
+        assertTrue(controller.isEnabled(1L))
+        assertFalse(controller.isEnabled(2L))
+        controller.stop()
+    }
+
     private fun filler(id: Long, enabled: Boolean) = FillerEvent(
         id = Identifier(databaseId = id),
         scenarioId = Identifier(databaseId = 100L),
