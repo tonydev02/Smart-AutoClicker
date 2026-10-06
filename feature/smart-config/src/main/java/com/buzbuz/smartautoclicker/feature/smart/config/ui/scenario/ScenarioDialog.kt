@@ -16,6 +16,7 @@
  */
 package com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario
 
+import android.content.Context
 import android.util.Log
 import android.view.View
 import android.view.ViewGroup
@@ -41,6 +42,7 @@ import com.buzbuz.smartautoclicker.feature.smart.config.ui.scenario.fillerevents
 
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.navigation.NavigationBarView
+import com.google.android.material.navigationrail.NavigationRailView
 
 import kotlinx.coroutines.launch
 import com.buzbuz.smartautoclicker.core.common.tutorial.domain.model.monitoring.MonitoredOverlayType
@@ -67,6 +69,7 @@ class ScenarioDialog(
 
     override fun inflateMenu(navBarView: NavigationBarView) {
         navBarView.inflateMenu(R.menu.menu_scenario_config)
+        navBarView.configureScenarioNavigationRail(context)
     }
 
     override fun onCreateContent(navItemId: Int): NavBarDialogContent = when (navItemId) {
@@ -156,3 +159,10 @@ class ScenarioDialog(
 }
 
 private const val TAG = "ScenarioDialog"
+
+internal fun NavigationBarView.configureScenarioNavigationRail(context: Context) {
+    if (this is NavigationRailView) {
+        itemMinimumHeight =
+            context.resources.getDimensionPixelSize(R.dimen.scenario_navigation_rail_item_min_height)
+    }
+}

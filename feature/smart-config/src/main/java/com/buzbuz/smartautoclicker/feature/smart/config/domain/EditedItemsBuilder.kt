@@ -118,11 +118,7 @@ class EditedItemsBuilder internal constructor(
             id = eventId,
             scenarioId = getEditedScenarioIdOrThrow(),
             name = defaultValues.eventName(context),
-            movement = RandomMovement(
-                id = actionsIdCreator.generateNewIdentifier(),
-                eventId = eventId,
-                priority = 0,
-            ),
+            movement = createNewRandomMovement(context, eventId),
         )
     }
 
@@ -350,9 +346,12 @@ class EditedItemsBuilder internal constructor(
         )
 
     fun createNewRandomMovement(context: Context): RandomMovement =
+        createNewRandomMovement(context, getEditedEventIdOrThrow())
+
+    private fun createNewRandomMovement(context: Context, eventId: Identifier): RandomMovement =
         RandomMovement(
             id = actionsIdCreator.generateNewIdentifier(),
-            eventId = getEditedEventIdOrThrow(),
+            eventId = eventId,
             name = context.getString(com.buzbuz.smartautoclicker.feature.smart.config.R.string.item_random_movement_title),
             priority = 0,
             area = displayConfigManager.displayConfig.sizePx.let { size ->

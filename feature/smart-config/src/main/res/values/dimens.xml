@@ -16,6 +16,7 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 -->
 <resources>
+    <dimen name="scenario_navigation_rail_item_min_height">48dp</dimen>
     <dimen name="dialog_condition_max_height">600dp</dimen>
     <dimen name="dialog_condition_max_width">400dp</dimen>
     <dimen name="dialog_item_condition_height">100dp</dimen>

@@ -48,7 +48,7 @@ data class UiAction(
 internal fun Action.toUiAction(context: Context, parent: Event? = null, inError: Boolean = !isComplete()): UiAction =
     UiAction(
         action = this,
-        name = name!!,
+        name = name.orEmpty(),
         icon = getIconRes(),
         description = getActionDescription(context, parent, inError),
         haveError = inError,
