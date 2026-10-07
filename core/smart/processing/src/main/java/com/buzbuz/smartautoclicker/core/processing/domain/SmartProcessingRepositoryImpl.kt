@@ -37,6 +37,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorEngine
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorState
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.processing.domain.model.DetectionState
 import com.buzbuz.smartautoclicker.core.processing.domain.model.toDetectionState
 import com.buzbuz.smartautoclicker.core.processing.domain.trying.ActionTry
@@ -77,7 +78,8 @@ internal class SmartProcessingRepositoryImpl @Inject constructor(
     @Dispatcher(IO) ioDispatcher: CoroutineDispatcher,
     private val scenarioRepository: IRepository,
     private val detectorEngine: DetectorEngine,
-): SmartProcessingRepository {
+    private val diagnosticLogger: DiagnosticLogger,
+) : SmartProcessingRepository {
 
     private val coroutineScopeMain: CoroutineScope =
         CoroutineScope(SupervisorJob() + mainDispatcher)
@@ -153,14 +155,34 @@ internal class SmartProcessingRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun startDetection(context: Context, liveDebugging: Boolean, generateReport: Boolean, autoStopDuration: Duration?) {
+    override suspend fun startDetection(
+        context: Context,
+        liveDebugging: Boolean,
+        generateReport: Boolean,
+        autoStopDuration: Duration?,
+    ) {
         val id = scenarioId.value?.databaseId ?: return
-        val scenario = scenarioRepository.getScenario(id) ?: return
+        diagnosticLogger.startSession(
+            scenarioId = id,
+            details = "autoStopDurationPresent=${autoStopDuration != null} " +
+                "autoStopDurationMs=${autoStopDuration?.inWholeMilliseconds} detectorState=${detectorEngine.state.value}",
+        )
+        diagnosticLogger.log(
+            "SmartProcessingRepository",
+            "startDetection requested scenarioId=$id autoStopDurationMs=${autoStopDuration?.inWholeMilliseconds}",
+        )
+        val scenario = scenarioRepository.getScenario(id) ?: run {
+            diagnosticLogger.endSession(detectorEngine.state.value.name, "SCENARIO_NOT_FOUND")
+            return
+        }
         val events = scenarioRepository.getScreenEvents(id)
         val triggerEvents = scenarioRepository.getTriggerEvents(id)
         val fillerEvents = scenarioRepository.getFillerEvents(id)
         val counters = scenarioRepository.getCounters(id)
-
+        diagnosticLogger.log(
+            "SmartProcessingRepository",
+            "detector state before start=${detectorEngine.state.value}",
+        )
         detectorEngine.startDetection(
             context = context,
             scenario = scenario,
@@ -171,26 +193,46 @@ internal class SmartProcessingRepositoryImpl @Inject constructor(
             generateReport = generateReport,
             fillerEvents = fillerEvents,
         )
+        diagnosticLogger.log(
+            "SmartProcessingRepository",
+            "startDetection returned detectorState=${detectorEngine.state.value}",
+        )
 
         autoStopDuration?.let { duration ->
+            if (autoStopJob?.isActive == true) {
+                diagnosticLogger.log("SmartProcessingRepository", "auto-stop cancelled")
+            }
             autoStopJob?.cancel()
+            diagnosticLogger.log(
+                "SmartProcessingRepository",
+                "auto-stop scheduled durationMs=${duration.inWholeMilliseconds}",
+            )
             autoStopJob = coroutineScopeIo.launch {
                 delay(duration)
-                stopDetection()
+                diagnosticLogger.log("SmartProcessingRepository", "auto-stop fired")
+                stopDetection(StopReason.AUTO_STOP)
             }
         }
     }
 
     override fun stopDetection() {
-        detectorEngine.stopDetection()
+        stopDetection(StopReason.USER_OR_EXTERNAL_REQUEST)
+    }
+
+    private fun stopDetection(reason: StopReason) {
+        diagnosticLogger.log("SmartProcessingRepository", "stopDetection requested reason=$reason")
+        detectorEngine.stopDetection(reason.name)
+        if (autoStopJob?.isActive == true && reason != StopReason.AUTO_STOP) {
+            diagnosticLogger.log("SmartProcessingRepository", "auto-stop cancelled")
+        }
         autoStopJob?.cancel()
         autoStopJob = null
     }
 
     override fun stopScreenRecord() {
+        diagnosticLogger.log("SmartProcessingRepository", "stopScreenRecord requested")
         projectionErrorHandler = null
         detectorEngine.stopScreenRecord()
-
         _scenarioId.value = null
     }
 

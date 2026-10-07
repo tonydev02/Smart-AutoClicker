@@ -57,13 +57,13 @@ import com.buzbuz.smartautoclicker.core.domain.model.action.intent.putDomainExtr
 import com.buzbuz.smartautoclicker.core.domain.model.event.Event
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
-
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.logSafely
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
 import kotlinx.coroutines.CancellationException
 import kotlin.random.Random
 
@@ -80,6 +80,7 @@ internal class ActionExecutor(
     randomize: Boolean,
     unblockWorkaroundEnabled: Boolean = false,
     private val webhookHttpClient: WebhookHttpClient = HttpUrlConnectionWebhookHttpClient(),
+    private val diagnosticLogger: DiagnosticLogger? = null,
 ) {
 
     init { androidExecutor.resetState() }
@@ -112,14 +113,14 @@ internal class ActionExecutor(
                 is MultiTouch -> executeMultiTouch(action)
                 is RandomMovement -> executeRandomMovement(action)
                 is Swipe -> executeSwipe(action)
-                is Pause -> executePause(action)
+                is Pause -> executePause(event, action)
                 is Intent -> executeIntent(action)
                 is ToggleEvent -> executeToggleEvent(action)
                 is ChangeCounter -> executeChangeCounter(action)
                 is Notification -> executeNotification(event, action)
                 is SystemAction -> executeSystemAction(action)
                 is SetText -> executeSetText(action)
-                is Webhook -> executeWebhook(action)
+                is Webhook -> executeWebhook(event, action)
             }
         }
     }
@@ -247,7 +248,7 @@ internal class ActionExecutor(
      * Execute the provided pause.
      * @param pause the pause to be executed.
      */
-    private suspend fun executePause(pause: Pause) {
+    private suspend fun executePause(event: Event, pause: Pause) {
         val duration = when (pause.pauseMode) {
             PauseMode.FIXED -> pause.pauseDuration!!.getPauseDurationMs(random)
             PauseMode.RANDOM_RANGE -> selectRandomPauseDuration(
@@ -258,7 +259,32 @@ internal class ActionExecutor(
                 pauseRangeRandom,
             )
         }
-        delay(duration)
+        if (duration < LONG_PAUSE_DIAGNOSTIC_THRESHOLD_MS) {
+            delay(duration)
+            return
+        }
+
+        val startedAt = android.os.SystemClock.elapsedRealtime()
+        diagnosticLogger.logSafely(
+            "ActionExecutor",
+            "LONG_PAUSE START eventId=${event.id.databaseId} actionId=${pause.id.databaseId} " +
+                "durationMs=$duration pauseMode=${pause.pauseMode}",
+        )
+        try {
+            delay(duration)
+            diagnosticLogger.logSafely(
+                "ActionExecutor",
+                "LONG_PAUSE END eventId=${event.id.databaseId} actionId=${pause.id.databaseId} " +
+                    "elapsedActualMs=${android.os.SystemClock.elapsedRealtime() - startedAt}",
+            )
+        } catch (cancelled: CancellationException) {
+            diagnosticLogger.logSafely(
+                "ActionExecutor",
+                "LONG_PAUSE CANCELLED eventId=${event.id.databaseId} actionId=${pause.id.databaseId} " +
+                    "elapsedActualMs=${android.os.SystemClock.elapsedRealtime() - startedAt}",
+            )
+            throw cancelled
+        }
     }
 
     /**
@@ -387,7 +413,11 @@ internal class ActionExecutor(
         }
     }
 
-    private suspend fun executeWebhook(action: Webhook) {
+    private suspend fun executeWebhook(event: Event, action: Webhook) {
+        diagnosticLogger.logSafely(
+            "ActionExecutor",
+            "WEBHOOK START eventId=${event.id.databaseId} actionId=${action.id.databaseId} mode=${action.mode}",
+        )
         val (url, contentType, body) = when (action.mode) {
             WebhookMode.TELEGRAM_BOT -> {
                 val token = action.telegramBotToken
@@ -395,12 +425,22 @@ internal class ActionExecutor(
                 val messageTemplate = action.telegramMessage
                 if (token.isNullOrBlank() || chatId.isNullOrBlank() || messageTemplate == null) {
                     Log.w(TAG, "Webhook configuration is incomplete")
+                    diagnosticLogger.logSafely(
+                        "ActionExecutor",
+                        "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} " +
+                            "EXCEPTION type=IllegalArgumentException",
+                    )
                     return
                 }
 
                 val message = messageTemplate.replaceWebhookCounterReferences()
                 if (message.length > MAX_WEBHOOK_TELEGRAM_MESSAGE_LENGTH) {
                     Log.w(TAG, "Webhook Telegram message exceeds the supported length")
+                    diagnosticLogger.logSafely(
+                        "ActionExecutor",
+                        "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} " +
+                            "EXCEPTION type=IllegalArgumentException",
+                    )
                     return
                 }
 
@@ -419,6 +459,11 @@ internal class ActionExecutor(
                 val bodyTemplate = action.customBody
                 if (url.isNullOrBlank() || contentType.isNullOrBlank() || bodyTemplate == null) {
                     Log.w(TAG, "Webhook configuration is incomplete")
+                    diagnosticLogger.logSafely(
+                        "ActionExecutor",
+                        "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} " +
+                            "EXCEPTION type=IllegalArgumentException",
+                    )
                     return
                 }
                 Triple(
@@ -431,13 +476,32 @@ internal class ActionExecutor(
 
         try {
             val result = webhookHttpClient.post(url, contentType, body)
-            if (result.statusCode !in 200..299) {
+            if (result.statusCode in 200..299) {
+                diagnosticLogger.logSafely(
+                    "ActionExecutor",
+                    "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} SUCCESS",
+                )
+            } else {
                 Log.w(TAG, "Webhook request failed with HTTP status ${result.statusCode}")
+                diagnosticLogger.logSafely(
+                    "ActionExecutor",
+                    "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} " +
+                        "HTTP_ERROR status=${result.statusCode}",
+                )
             }
         } catch (cancelled: CancellationException) {
+            diagnosticLogger.logSafely(
+                "ActionExecutor",
+                "WEBHOOK CANCELLED eventId=${event.id.databaseId} actionId=${action.id.databaseId}",
+            )
             throw cancelled
-        } catch (_: Exception) {
+        } catch (exception: Exception) {
             Log.w(TAG, "Webhook request failed")
+            diagnosticLogger.logSafely(
+                "ActionExecutor",
+                "WEBHOOK END eventId=${event.id.databaseId} actionId=${action.id.databaseId} " +
+                    "EXCEPTION type=${exception.javaClass.simpleName}",
+            )
         }
     }
 
@@ -464,3 +528,4 @@ private const val INTENT_START_ACTIVITY_DELAY = 1000L
 /** Waiting delay after a broadcast to avoid overflowing the system. */
 private const val INTENT_BROADCAST_DELAY = 100L
 private val WEBHOOK_COUNTER_REFERENCE_REGEX = Regex("\\{([^{}]+)\\}")
+private const val LONG_PAUSE_DIAGNOSTIC_THRESHOLD_MS = 60_000L

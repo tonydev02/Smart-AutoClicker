@@ -42,6 +42,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ActionExecutor
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ConditionsResults
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.processing.utils.anyNotNull
 import com.buzbuz.smartautoclicker.core.processing.domain.model.ProcessedConditionResult
 
@@ -363,6 +364,109 @@ class ActionExecutorTests {
         val fixed = getNewDefaultPause(20)
         assertEquals(TEST_DURATION, elapsed(randomize = false, pause = fixed))
         assertTrue(elapsed(randomize = true, pause = fixed) in (TEST_DURATION - 5L)..(TEST_DURATION + 5L))
+    }
+    @Test
+    fun longPauseLogsStartAndEndAfterVirtualTimeAdvances() = runTest {
+        val logger = RecordingDiagnosticLogger()
+        val durationMs = 3L * 60 * 60 * 1_000
+        val pause = Pause(
+            id = Identifier(databaseId = 55L),
+            eventId = TEST_EVENT_ID,
+            name = null,
+            priority = 0,
+            pauseDuration = durationMs,
+        )
+        val executor = ActionExecutor(
+            mockAndroidExecutor,
+            mockProcessingState,
+            randomize = false,
+            diagnosticLogger = logger,
+        )
+
+        val execution = launch {
+            executor.executeActions(getNewDefaultEvent(actions = listOf(pause)), ConditionsResults())
+        }
+        runCurrent()
+        assertTrue(logger.messages.single().contains("LONG_PAUSE START"))
+        advanceUntilIdle()
+        execution.join()
+        assertTrue(logger.messages.any { it.contains("LONG_PAUSE END") })
+        assertEquals(durationMs, testScheduler.currentTime)
+    }
+
+    @Test
+    fun cancelledLongPauseLogsCancellationAndPropagatesCancellation() = runTest {
+        val logger = RecordingDiagnosticLogger()
+        val pause = Pause(
+            id = Identifier(databaseId = 56L),
+            eventId = TEST_EVENT_ID,
+            name = null,
+            priority = 0,
+            pauseDuration = 3L * 60 * 60 * 1_000,
+        )
+        val executor = ActionExecutor(
+            mockAndroidExecutor,
+            mockProcessingState,
+            randomize = false,
+            diagnosticLogger = logger,
+        )
+        val execution = launch {
+            executor.executeActions(getNewDefaultEvent(actions = listOf(pause)), ConditionsResults())
+        }
+        runCurrent()
+        advanceTimeBy(60_000L)
+        execution.cancelAndJoin()
+
+        assertTrue(logger.messages.any { it.contains("LONG_PAUSE START") })
+        assertTrue(logger.messages.any { it.contains("LONG_PAUSE CANCELLED") })
+        assertTrue(execution.isCancelled)
+    }
+
+    @Test
+    fun shortPauseDoesNotEmitPersistentPauseRecords() = runTest {
+        val logger = RecordingDiagnosticLogger()
+        val executor = ActionExecutor(
+            mockAndroidExecutor,
+            mockProcessingState,
+            randomize = false,
+            diagnosticLogger = logger,
+        )
+
+        executor.executeActions(getNewDefaultEvent(actions = listOf(getNewDefaultPause(57))), ConditionsResults())
+        assertTrue(logger.messages.isEmpty())
+    }
+    @Test
+    fun diagnosticWriteFailureDoesNotEscapeActionExecution() = runTest {
+        val failingLogger = object : DiagnosticLogger {
+            override fun startSession(scenarioId: Long, details: String) = error("write failure")
+            override fun log(category: String, message: String) = error("write failure")
+            override fun endSession(state: String, reason: String) = error("write failure")
+        }
+        val executor = ActionExecutor(
+            mockAndroidExecutor,
+            mockProcessingState,
+            randomize = false,
+            diagnosticLogger = failingLogger,
+        )
+        val pause = Pause(
+            id = Identifier(databaseId = 58L),
+            eventId = TEST_EVENT_ID,
+            name = null,
+            priority = 0,
+            pauseDuration = 60_000L,
+        )
+
+        executor.executeActions(getNewDefaultEvent(actions = listOf(pause)), ConditionsResults())
+        assertEquals(60_000L, testScheduler.currentTime)
+    }
+
+    private class RecordingDiagnosticLogger : DiagnosticLogger {
+        val messages = mutableListOf<String>()
+        override fun startSession(scenarioId: Long, details: String) = Unit
+        override fun log(category: String, message: String) {
+            messages += message
+        }
+        override fun endSession(state: String, reason: String) = Unit
     }
 
     @Test

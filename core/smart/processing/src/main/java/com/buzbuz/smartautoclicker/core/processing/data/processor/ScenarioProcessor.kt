@@ -26,11 +26,11 @@ import com.buzbuz.smartautoclicker.core.domain.model.counter.Counter
 import com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
 import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
-import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
 import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.processing.domain.EventType
+import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
-
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -63,6 +63,7 @@ internal class ScenarioProcessor(
     private val onStopRequested: () -> Unit,
     private val progressListener: SmartProcessingListener?,
     fillerEvents: List<FillerEvent> = emptyList(),
+    private val diagnosticLogger: DiagnosticLogger? = null,
 ) {
 
     private val fillerScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -90,17 +91,20 @@ internal class ScenarioProcessor(
         processingState = processingState,
         randomize = randomize,
         unblockWorkaroundEnabled = unblockWorkaroundEnabled,
+        diagnosticLogger = diagnosticLogger,
     )
     private val fillerController = FillerController(fillerEvents, fillerScope) { filler, mayDispatch ->
         actionExecutor.executeFillerRandomMovement(filler.movement, mayDispatch)
     }
 
     fun onScenarioStart(context: Context) {
+        diagnosticLogger?.log("ScenarioProcessor", "ScenarioProcessor start")
         processingState.onProcessingStarted(context)
         fillerController.start()
     }
 
     fun onScenarioEnd() {
+        diagnosticLogger?.log("ScenarioProcessor", "ScenarioProcessor end")
         fillerController.stop()
         fillerScope.cancel()
         processingState.onProcessingStopped()
@@ -116,6 +120,7 @@ internal class ScenarioProcessor(
     suspend fun process(screenFrame: Bitmap) {
         // No more events enabled, there is nothing more to do. Stop the detection.
         if (processingState.areAllEventsDisabled()) {
+            diagnosticLogger?.log("ScenarioProcessor", "ALL_EVENTS_DISABLED")
             onStopRequested()
             return
         }
@@ -222,10 +227,24 @@ internal class ScenarioProcessor(
         onActionsExecuted: () -> Unit,
     ) {
         withContext(Dispatchers.Main.immediate) { fillerController.onForegroundStarted() }
+        val trigger = event as? TriggerEvent
+        if (trigger != null) {
+            val safeName = trigger.name.replace(Regex("[^A-Za-z0-9 _.-]"), "_").take(40)
+            diagnosticLogger?.log(
+                "ScenarioProcessor",
+                "TRIGGER FOREGROUND START eventId=${trigger.id.databaseId} name=$safeName",
+            )
+        }
         try {
             actionExecutor.executeActions(event, results)
             onActionsExecuted()
         } finally {
+            if (trigger != null) {
+                diagnosticLogger?.log(
+                    "ScenarioProcessor",
+                    "TRIGGER FOREGROUND END eventId=${trigger.id.databaseId}",
+                )
+            }
             withContext(Dispatchers.Main.immediate) { fillerController.onForegroundFinished() }
         }
     }

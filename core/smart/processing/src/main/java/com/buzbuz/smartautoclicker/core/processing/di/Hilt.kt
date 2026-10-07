@@ -16,6 +16,9 @@
  */
 package com.buzbuz.smartautoclicker.core.processing.di
 
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.AndroidDiagnosticLogger
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.SafeDiagnosticLogger
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepository
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepositoryImpl
 import dagger.Module
@@ -33,5 +36,9 @@ object ProcessingModule {
     @Singleton
     internal fun providesProcessingRepository(impl: SmartProcessingRepositoryImpl): SmartProcessingRepository =
         impl
+    @Provides
+    @Singleton
+    internal fun providesDiagnosticLogger(impl: AndroidDiagnosticLogger): DiagnosticLogger =
+        SafeDiagnosticLogger(impl)
 
 }

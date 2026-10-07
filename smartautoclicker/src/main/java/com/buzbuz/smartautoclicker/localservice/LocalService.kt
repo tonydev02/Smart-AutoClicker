@@ -30,6 +30,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.dumb.domain.model.DumbScenario
 import com.buzbuz.smartautoclicker.core.dumb.engine.DumbEngine
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepository
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.processing.domain.model.DetectionState
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.DebuggingRepository
@@ -61,6 +62,7 @@ class LocalService(
     private val tutorialRepository: TutorialRepository,
     private val revenueRepository: IRevenueRepository,
     private val debuggingRepository: DebuggingRepository,
+    private val diagnosticLogger: DiagnosticLogger,
     private val onStart: (scenarioId: Long, isSmart: Boolean, foregroundNotification: Notification?) -> Unit,
     private val onStop: () -> Unit,
 ) : LocalAccessibilityService {
@@ -179,6 +181,7 @@ class LocalService(
     }
 
     override fun stopScenario() {
+        diagnosticLogger.log("LocalService", "stopScenario requested")
         if (!isStarted) return
         state = LocalServiceState(isStarted = false, isSmartLoaded = false)
 
@@ -196,6 +199,7 @@ class LocalService(
     }
 
     override fun release() {
+        diagnosticLogger.log("LocalService", "release")
         serviceScope.cancel()
     }
 
@@ -205,6 +209,7 @@ class LocalService(
     }
 
     private fun play() {
+        diagnosticLogger.log("LocalService", "play requested")
         serviceScope.launch {
             if (state.isSmartLoaded && !smartProcessingRepository.isRunning()) {
                 if (shouldStartPaywall()) startPaywall()
@@ -216,6 +221,7 @@ class LocalService(
     }
 
     private fun pause() {
+        diagnosticLogger.log("LocalService", "pause requested")
         serviceScope.launch {
             when {
                 dumbEngine.isRunning.value -> dumbEngine.stopDumbScenario()

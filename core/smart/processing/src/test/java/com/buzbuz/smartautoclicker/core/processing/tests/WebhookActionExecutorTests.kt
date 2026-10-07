@@ -31,6 +31,7 @@ import com.buzbuz.smartautoclicker.core.processing.data.processor.ActionExecutor
 import com.buzbuz.smartautoclicker.core.processing.data.processor.WebhookHttpClient
 import com.buzbuz.smartautoclicker.core.processing.data.processor.WebhookHttpResult
 import com.buzbuz.smartautoclicker.core.processing.data.processor.state.ProcessingState
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -163,6 +164,48 @@ class WebhookActionExecutorTests {
         val timeout = FakeWebhookHttpClient(failure = java.net.SocketTimeoutException("secret exception text"))
         execute(webhook, timeout)
         assertEquals(1, timeout.requests.size)
+    }
+    @Test
+    fun webhookDiagnosticsContainOnlySafeMetadata() = runBlocking {
+        val secretToken = "private-bot-token"
+        val privateChatId = "-100private-chat"
+        val privateMessage = "do not log this payload"
+        val records = mutableListOf<String>()
+        val logger = object : DiagnosticLogger {
+            override fun startSession(scenarioId: Long, details: String) = Unit
+            override fun log(category: String, message: String) {
+                records += message
+            }
+            override fun endSession(state: String, reason: String) = Unit
+        }
+        val action = webhook(
+            mode = WebhookMode.TELEGRAM_BOT,
+            telegramBotToken = secretToken,
+            telegramChatId = privateChatId,
+            telegramMessage = privateMessage,
+        )
+        val http = FakeWebhookHttpClient()
+        mockStatic(Log::class.java).use {
+            ActionExecutor(
+                androidExecutor,
+                processingState,
+                randomize = false,
+                webhookHttpClient = http,
+                diagnosticLogger = logger,
+            ).executeActions(
+                event = ScreenEvent(
+                    EVENT_ID, Identifier(databaseId = 3L), "Event", OR, listOf(action), emptyList(),
+                    true, 0, cooldownMs = 0, keepDetecting = false,
+                ),
+            )
+        }
+
+        val diagnostics = records.joinToString("\\n")
+        assertTrue(diagnostics.contains("WEBHOOK START"))
+        assertTrue(diagnostics.contains("WEBHOOK END"))
+        listOf(secretToken, privateChatId, privateMessage, "chat_id=", "text=").forEach {
+            assertTrue("Diagnostic log leaked $it", !diagnostics.contains(it))
+        }
     }
 
     @Test

@@ -47,6 +47,7 @@ import com.buzbuz.smartautoclicker.core.processing.data.DetectorEngine
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorState
 import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 
 import io.mockk.MockKAnnotations
@@ -70,6 +71,7 @@ import kotlinx.coroutines.test.setMain
 
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -125,10 +127,19 @@ class DetectorEngineDetectionOrientationTests {
     @RelaxedMockK private lateinit var mockImageDetector: ImageDetector
     @RelaxedMockK private lateinit var mockContext: Context
     @RelaxedMockK private lateinit var mockIntent: Intent
+    private val diagnosticMessages = mutableListOf<String>()
+    private val diagnosticLogger = object : DiagnosticLogger {
+        override fun startSession(scenarioId: Long, details: String) = Unit
+        override fun log(category: String, message: String) {
+            diagnosticMessages += message
+        }
+        override fun endSession(state: String, reason: String) = Unit
+    }
 
     @Before
     fun setUp() {
         MockKAnnotations.init(this)
+        diagnosticMessages.clear()
 
         every { mockDisplayConfigManager.displayConfig } returns DisplayConfig(
             sizePx = TEST_DISPLAY_SIZE,
@@ -346,6 +357,16 @@ class DetectorEngineDetectionOrientationTests {
         frameChannel.send(restartedFrame)
         runCurrent()
         verify { mockImageDetector.setScreenBitmap(restartedFrame, "test.app") }
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #1 CREATED") })
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #1 START") })
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #1 first-frame acquired") })
+        assertTrue(diagnosticMessages.any {
+            it.contains("processScreenImages EXIT generation=1 orientationRequested=true")
+        })
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #1 COMPLETED cause=null") })
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #2 CREATED") })
+        assertTrue(diagnosticMessages.any { it.contains("restart processing loop LAUNCHED generation=2") })
+        assertTrue(diagnosticMessages.any { it.contains("processing-loop #2 START") })
         assertEquals(DetectorState.DETECTING, engine.state.value)
 
         stopDetection(engine)
@@ -533,6 +554,7 @@ class DetectorEngineDetectionOrientationTests {
             appComponentsProvider = mockAppComponentsProvider,
             debuggingListener = mockDebuggingListener,
             ocrModelsRepository = mockOcrModelsRepository,
+            diagnosticLogger = diagnosticLogger,
         )
 
         var capturedListener: ((Context) -> Unit)? = null

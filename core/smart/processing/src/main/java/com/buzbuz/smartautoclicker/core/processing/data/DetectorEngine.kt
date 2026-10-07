@@ -42,6 +42,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.data.processor.ScenarioProcessor
 import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
 
@@ -52,6 +53,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -82,6 +84,7 @@ class DetectorEngine @Inject constructor(
     private val appComponentsProvider: AppComponentsProvider,
     private val debuggingListener: SmartProcessingListener,
     private val ocrModelsRepository: OCRModelsRepository,
+    private val diagnosticLogger: DiagnosticLogger,
 ) {
 
     /** Process the events conditions to detect them on the screen. */
@@ -93,6 +96,8 @@ class DetectorEngine @Inject constructor(
     private var processingScope: CoroutineScope? = null
     /** Coroutine job for the image currently processed. */
     private var processingJob: Job? = null
+    private var processingGeneration: Long = 0L
+    private var orientationGeneration: Long = 0L
     /** Coroutine job for the cleaning of the detection once stopped. */
     private var processingShutdownJob: Job? = null
     /** Coroutine job for the debounced orientation change handler. */
@@ -111,6 +116,23 @@ class DetectorEngine @Inject constructor(
     private val _state = MutableStateFlow(DetectorState.CREATED)
     /** Current state of the detector. */
     internal val state: StateFlow<DetectorState> = _state
+    private fun transitionTo(newState: DetectorState, reason: String) {
+        val oldState = _state.value
+        if (oldState != newState) {
+            diagnosticLogger.log("DetectorEngine", "state $oldState -> $newState reason=$reason")
+        }
+        _state.value = newState
+        if (newState.name.startsWith("ERROR_")) diagnosticLogger.endSession(newState.name, "ERROR_STATE")
+    }
+
+    private suspend fun emitState(newState: DetectorState, reason: String) {
+        val oldState = _state.value
+        if (oldState != newState) {
+            diagnosticLogger.log("DetectorEngine", "state $oldState -> $newState reason=$reason")
+        }
+        _state.emit(newState)
+        if (newState.name.startsWith("ERROR_")) diagnosticLogger.endSession(newState.name, "ERROR_STATE")
+    }
 
     /** Scenario currently processed. Null if not detecting. */
     private var minProcessingDurationNs: Long = DEFAULT_MIN_PROCESSING_DURATION_NS
@@ -148,9 +170,10 @@ class DetectorEngine @Inject constructor(
             return
         }
 
-        _state.value = DetectorState.TRANSITIONING
+        transitionTo(DetectorState.TRANSITIONING, "startScreenRecord")
 
         Log.i(TAG, "startScreenRecord")
+        diagnosticLogger.log("DetectorEngine", "startScreenRecord ENTER size=${displaySize.x}x${displaySize.y}")
 
         processingScope = CoroutineScope(ioDispatcher.limitedParallelism(1))
 
@@ -158,17 +181,29 @@ class DetectorEngine @Inject constructor(
 
         processingScope?.launch {
             displayRecorder.apply {
+                diagnosticLogger.log("DisplayRecorder", "startProjection requested")
                 startProjection(resultCode, data) {
+                    diagnosticLogger.log(
+                        "DetectorEngine",
+                        "PROJECTION LOST CALLBACK RECEIVED state=${_state.value} " +
+                            "processingGeneration=$processingGeneration orientationGeneration=$orientationGeneration " +
+                            "orientationChangeRequested=$orientationChangeRequested",
+                    )
                     Log.w(TAG, "projection lost")
-                    this@DetectorEngine.stopScreenRecord()
+                    this@DetectorEngine.stopScreenRecord("PROJECTION_LOST")
                     onRecordingStopped?.invoke()
                 }
+                diagnosticLogger.log("DisplayRecorder", "startProjection completed")
+                diagnosticLogger.log("DisplayRecorder", "startScreenRecord dimensions=${displaySize.x}x${displaySize.y}")
                 startScreenRecord(displaySize)
+                diagnosticLogger.log("DisplayRecorder", "startScreenRecord completed")
             }
 
-            _state.emit(
-                if (!displayRecorder.validateScreenCapture()) DetectorState.ERROR_SCREEN_IMAGE_CAPTURE_FAILED
-                else DetectorState.RECORDING
+            val captureValid = displayRecorder.validateScreenCapture()
+            diagnosticLogger.log("DetectorEngine", "startScreenRecord EXIT captureValid=$captureValid")
+            emitState(
+                if (!captureValid) DetectorState.ERROR_SCREEN_IMAGE_CAPTURE_FAILED else DetectorState.RECORDING,
+                "startScreenRecord captureValid=$captureValid",
             )
         }
     }
@@ -192,6 +227,7 @@ class DetectorEngine @Inject constructor(
         imageDetectorFactory: () -> ImageDetector? = NativeDetector::newInstance,
         fillerEvents: List<com.buzbuz.smartautoclicker.core.domain.model.event.FillerEvent> = emptyList(),
     ) {
+        diagnosticLogger.log("DetectorEngine", "startDetection ENTER state=${_state.value} scenarioId=${scenario.id.databaseId}")
         if (_state.value != DetectorState.RECORDING) {
             Log.w(TAG, "startDetection: Screen record is not started.")
             return
@@ -200,12 +236,11 @@ class DetectorEngine @Inject constructor(
         val detector = imageDetectorFactory()
         if (detector == null) {
             Log.e(TAG, "startDetection: native library not found.")
-            _state.value = DetectorState.ERROR_NATIVE_DETECTOR_LIB_NOT_FOUND
+            transitionTo(DetectorState.ERROR_NATIVE_DETECTOR_LIB_NOT_FOUND, "native detector unavailable")
             return
         }
 
-        _state.value = DetectorState.TRANSITIONING
-
+        transitionTo(DetectorState.TRANSITIONING, "startDetection")
         Log.i(TAG, "startDetection")
 
         processingScope?.launchProcessingJob {
@@ -217,7 +252,7 @@ class DetectorEngine @Inject constructor(
             val requiredAlphabets = screenEvents.getAllOCRAlphabets()
             if (requiredAlphabets.isNotEmpty()) {
                 if (!detector.loadOcrModels(requiredAlphabets)) {
-                    _state.value = DetectorState.ERROR_OCR_MODEL_NOT_FOUND
+                    transitionTo(DetectorState.ERROR_OCR_MODEL_NOT_FOUND, "OCR model unavailable")
                     return@launchProcessingJob
                 }
             }
@@ -226,11 +261,15 @@ class DetectorEngine @Inject constructor(
             bitmapRepository.clearCache()
 
             // Set the display projection to the scaled size
-            displayRecorder.resizeDisplay(
-                displaySize = scalingManager.startScaling(
-                    quality = scenario.detectionQuality.toDouble(),
-                    screenEvents = screenEvents,
-                )
+            diagnosticLogger.log("DisplayRecorder", "resizeDisplay requested for detection")
+            val scaledSize = scalingManager.startScaling(
+                quality = scenario.detectionQuality.toDouble(),
+                screenEvents = screenEvents,
+            )
+            displayRecorder.resizeDisplay(displaySize = scaledSize)
+            diagnosticLogger.log(
+                "DisplayRecorder",
+                "resizeDisplay completed dimensions=${scaledSize.x}x${scaledSize.y}",
             )
 
             // Compute minimal processing duration
@@ -264,12 +303,13 @@ class DetectorEngine @Inject constructor(
                 bitmapSupplier = bitmapRepository::getImageConditionBitmap,
                 androidExecutor = actionExecutor,
                 unblockWorkaroundEnabled = settingsRepository.isInputBlockWorkaroundEnabled(),
-                onStopRequested = { stopDetection() },
+                onStopRequested = { stopDetection("ALL_EVENTS_DISABLED") },
                 fillerEvents = fillerEvents,
-                progressListener  = if (liveDebugging || generateReport) debuggingListener else null,
+                progressListener = if (liveDebugging || generateReport) debuggingListener else null,
+                diagnosticLogger = diagnosticLogger,
             )
             scenarioProcessor?.onScenarioStart(context)
-
+            diagnosticLogger.log("DetectorEngine", "startDetection EXIT state=${_state.value}")
             processScreenImages()
         }
     }
@@ -279,31 +319,69 @@ class DetectorEngine @Inject constructor(
      * As we now have different screen metrics, we need to stop and start the virtual display with the correct one.
      */
     private fun onScreenOrientationChanged() {
+        val requestId = ++orientationGeneration
+        val currentSize = displayConfigManager.displayConfig.sizePx
+        diagnosticLogger.log(
+            "DetectorEngine",
+            "orientation #$requestId CALLBACK state=${_state.value} size=${currentSize.x}x${currentSize.y}",
+        )
         if (_state.value != DetectorState.DETECTING && _state.value != DetectorState.RECORDING) return
 
         Log.d(TAG, "onOrientationChanged")
-
+        diagnosticLogger.log(
+            "DetectorEngine",
+            "orientation #$requestId cancelling prior orientation job=${orientationChangeJob?.isActive}",
+        )
         orientationChangeJob?.cancel()
-        orientationChangeJob = processingScope?.launch {
+        val job = processingScope?.launch {
             delay(ORIENTATION_CHANGE_DEBOUNCE_MS.milliseconds)
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId DEBOUNCE COMPLETE")
 
             if (_state.value == DetectorState.DETECTING) {
-                // Signal the loop to exit after the current frame so in-progress actions finish cleanly.
                 orientationChangeRequested = true
-                processingJob?.join()
+                diagnosticLogger.log(
+                    "DetectorEngine",
+                    "orientation #$requestId orientationChangeRequested=true awaiting generation=$processingGeneration",
+                )
+                diagnosticLogger.log("DetectorEngine", "orientation #$requestId JOIN START")
+                val joinedJob = processingJob
+                joinedJob?.join()
+                diagnosticLogger.log(
+                    "DetectorEngine",
+                    "orientation #$requestId JOIN END jobComplete=${joinedJob?.isCompleted} " +
+                        "jobCancelled=${joinedJob?.isCancelled}",
+                )
                 orientationChangeRequested = false
+                diagnosticLogger.log("DetectorEngine", "orientation #$requestId orientationChangeRequested=false")
                 debuggingListener.onEventsProcessingCancelled()
             }
 
-            displayRecorder.resizeDisplay(
-                displaySize = scalingManager.refreshScaling(),
-            )
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId refreshScaling START")
+            val newSize = scalingManager.refreshScaling()
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId refreshScaling END size=${newSize.x}x${newSize.y}")
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId resizeDisplay START")
+            displayRecorder.resizeDisplay(displaySize = newSize)
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId resizeDisplay END")
 
             if (_state.value == DetectorState.DETECTING) {
+                diagnosticLogger.log("DetectorEngine", "orientation #$requestId restart processing loop REQUESTED")
                 processingScope?.launchProcessingJob {
+                    diagnosticLogger.log("DetectorEngine", "orientation #$requestId restart processing loop LAUNCHED generation=$processingGeneration")
                     processScreenImages()
                 }
             }
+            diagnosticLogger.log("DetectorEngine", "orientation #$requestId COMPLETE")
+        }
+        orientationChangeJob = job
+        job?.invokeOnCompletion { cause ->
+            diagnosticLogger.log(
+                "DetectorEngine",
+                "orientation #$requestId job ${when {
+                    cause == null -> "COMPLETED"
+                    cause is kotlinx.coroutines.CancellationException -> "CANCELLED"
+                    else -> "FAILED exceptionClass=${cause.javaClass.simpleName}"
+                }}",
+            )
         }
     }
 
@@ -314,15 +392,17 @@ class DetectorEngine @Inject constructor(
      * image. Note that this will not stop the screen recording, you should still call [stopScreenRecord] to completely
      * release the [DetectorEngine] resources.
      */
-    internal fun stopDetection() {
+    internal fun stopDetection(reason: String = "USER_OR_EXTERNAL_REQUEST") {
+        diagnosticLogger.log("DetectorEngine", "stopDetection ENTER reason=$reason state=${_state.value}")
         if (_state.value != DetectorState.DETECTING) {
             Log.w(TAG, "stopDetection: detection is not started.")
             return
         }
-        _state.value = DetectorState.TRANSITIONING
+        transitionTo(DetectorState.TRANSITIONING, "stopDetection reason=$reason")
 
         processingShutdownJob = processingScope?.launch {
             Log.i(TAG, "stopDetection")
+            diagnosticLogger.log("DetectorEngine", "stopDetection cleanup START")
 
             processingJob?.cancelAndJoin()
             processingJob = null
@@ -335,9 +415,12 @@ class DetectorEngine @Inject constructor(
             scalingManager.stopScaling()
             displayRecorder.resizeDisplay(displayConfigManager.displayConfig.sizePx)
 
-            _state.emit(DetectorState.RECORDING)
+            emitState(DetectorState.RECORDING, "stopDetection cleanup complete")
             processingShutdownJob = null
-            minProcessingDurationNs  = DEFAULT_MIN_PROCESSING_DURATION_NS
+            diagnosticLogger.log("DetectorEngine", "stopDetection cleanup END state=${_state.value}")
+            if (reason != "SCREEN_RECORD_STOP" && reason != "PROJECTION_LOST") {
+                diagnosticLogger.endSession(_state.value.name, reason)
+            }
         }
     }
 
@@ -347,69 +430,106 @@ class DetectorEngine @Inject constructor(
      * First, calls [stopDetection] if the detection was active. Then, stop the screen recording and release any related
      * resources.
      */
-    internal fun stopScreenRecord() {
+    internal fun stopScreenRecord(reason: String = "SCREEN_RECORD_STOP") {
+        diagnosticLogger.log("DetectorEngine", "stopScreenRecord ENTER reason=$reason state=${_state.value}")
         if (_state.value == DetectorState.DETECTING) {
-            stopDetection()
-            stopRecording()
+            stopDetection(reason)
+            stopRecording(reason)
         } else if (_state.value == DetectorState.RECORDING) {
-            stopRecording()
+            stopRecording(reason)
         }
     }
 
-    private fun stopRecording() {
+    private fun stopRecording(reason: String) {
         Log.i(TAG, "stopScreenRecord")
-        _state.value = DetectorState.TRANSITIONING
+        diagnosticLogger.log("DetectorEngine", "stopRecording ENTER")
+        transitionTo(DetectorState.TRANSITIONING, "stopRecording")
 
         processingScope?.launch {
             processingShutdownJob?.join()
 
             displayConfigManager.removeOrientationListener(screenOrientationListener)
+            diagnosticLogger.log("DisplayRecorder", "stopProjection START")
             displayRecorder.stopProjection()
-            _state.emit(DetectorState.CREATED)
+            diagnosticLogger.log("DisplayRecorder", "stopProjection END")
+            emitState(DetectorState.CREATED, "stopRecording complete")
 
             processingScope?.cancel()
             processingScope = null
+            diagnosticLogger.log("DetectorEngine", "stopRecording END state=${_state.value}")
+            diagnosticLogger.endSession(_state.value.name, reason)
         }
     }
 
     /** Process the latest images provided by the [DisplayRecorder]. */
     private suspend fun processScreenImages() {
-        _state.emit(DetectorState.DETECTING)
+        diagnosticLogger.log(
+            "DetectorEngine",
+            "processScreenImages ENTER generation=$processingGeneration scopeActive=${processingScope?.isActive}",
+        )
+        emitState(DetectorState.DETECTING, "processScreenImages")
 
         var processingDurationNs: Long
-        while (processingJob?.isActive == true && !orientationChangeRequested) {
-            displayRecorder.acquireLatestBitmap()?.let { screenFrame ->
-                processingDurationNs = measureNanoTime {
-                    scenarioProcessor?.process(screenFrame)
-                }
+        var firstFrame = true
+        try {
+            while (processingJob?.isActive == true && !orientationChangeRequested) {
+                displayRecorder.acquireLatestBitmap()?.let { screenFrame ->
+                    if (firstFrame) {
+                        diagnosticLogger.log("DetectorEngine", "processing-loop #$processingGeneration first-frame acquired")
+                        firstFrame = false
+                    }
+                    processingDurationNs = measureNanoTime {
+                        scenarioProcessor?.process(screenFrame)
+                    }
 
-                // Avoid looping infinitely to quickly for nothing.
-                if (processingDurationNs < minProcessingDurationNs) {
-                    delay(duration = max(
-                        a = 1,
-                        b = (minProcessingDurationNs - processingDurationNs) / ONE_MILLISECOND_IN_NANO,
-                    ).milliseconds)
-                }
-
-            } ?: delay(NO_IMAGE_DELAY_MS.milliseconds)
+                    // Avoid looping infinitely to quickly for nothing.
+                    if (processingDurationNs < minProcessingDurationNs) {
+                        delay(duration = max(
+                            a = 1,
+                            b = (minProcessingDurationNs - processingDurationNs) / ONE_MILLISECOND_IN_NANO,
+                        ).milliseconds)
+                    }
+                } ?: delay(NO_IMAGE_DELAY_MS.milliseconds)
+            }
+        } finally {
+            val exitReason = when {
+                orientationChangeRequested -> "orientationRequested=true"
+                processingJob?.isCancelled == true -> "processingJob cancelled"
+                else -> "normal return"
+            }
+            diagnosticLogger.log(
+                "DetectorEngine",
+                "processScreenImages EXIT generation=$processingGeneration $exitReason state=${_state.value}",
+            )
         }
     }
 
     /**
      * Creates a new job executing the provided job automatically once the job is effectively created.
-     * This allows to check the job state correctly within the [block], even quickly after its start, as the [launch]
-     * method with the [CoroutineStart.DEFAULT] starts the coroutine execution before returning the resulting [Job].
+     * This allows to check the job state correctly within the [block].
      *
      * The job will be affected to the [processingJob] variable.
      *
      * @param block the coroutine code which will be invoked in the context of the provided scope.
      */
     private fun CoroutineScope.launchProcessingJob(block: suspend CoroutineScope.() -> Unit) {
-        processingJob = launch(
+        val generation = ++processingGeneration
+        diagnosticLogger.log("DetectorEngine", "processing-loop #$generation CREATED")
+        val job = launch(
             start = CoroutineStart.LAZY,
-            block = block,
-        )
-        processingJob?.start()
+        ) {
+            diagnosticLogger.log("DetectorEngine", "processing-loop #$generation START")
+            block()
+        }
+        processingJob = job
+        job.invokeOnCompletion { cause ->
+            diagnosticLogger.log(
+                "DetectorEngine",
+                "processing-loop #$generation COMPLETED cause=${cause?.javaClass?.simpleName ?: "null"} " +
+                    "scopeActive=${processingScope?.isActive}",
+            )
+        }
+        job.start()
     }
 
     private suspend fun ImageDetector.loadOcrModels(required: Set<OCRAlphabet>): Boolean {

@@ -33,6 +33,7 @@ import com.buzbuz.smartautoclicker.core.display.recorder.DisplayRecorder
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorEngine
 import com.buzbuz.smartautoclicker.core.processing.data.scaling.ScalingManager
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingListener
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -43,6 +44,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 
 import org.junit.Before
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mock
@@ -54,6 +56,9 @@ import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.stub
+import org.mockito.Mockito.doAnswer
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
 import org.robolectric.annotation.Config
 
 import org.mockito.Mockito.`when` as mockWhen
@@ -83,6 +88,14 @@ class DetectorEngineOrientationTests {
     @Mock private lateinit var mockAppComponentsProvider: AppComponentsProvider
     @Mock private lateinit var mockDebuggingListener: SmartProcessingListener
     @Mock private lateinit var mockOcrModelsRepository: OCRModelsRepository
+    private val diagnosticMessages = mutableListOf<String>()
+    private val diagnosticLogger = object : DiagnosticLogger {
+        override fun startSession(scenarioId: Long, details: String) = Unit
+        override fun log(category: String, message: String) {
+            diagnosticMessages += message
+        }
+        override fun endSession(state: String, reason: String) = Unit
+    }
 
     private val mockContext: Context = mock(Context::class.java)
     private val mockIntent: Intent = mock(Intent::class.java)
@@ -90,6 +103,7 @@ class DetectorEngineOrientationTests {
     @Before
     fun setUp() {
         MockitoAnnotations.openMocks(this)
+        diagnosticMessages.clear()
         mockWhen(mockDisplayConfigManager.displayConfig).thenReturn(
             DisplayConfig(
                 sizePx = TEST_DISPLAY_SIZE,
@@ -147,6 +161,51 @@ class DetectorEngineOrientationTests {
         advanceUntilIdle()
         verify(mockScalingManager, times(1)).refreshScaling()
     }
+    @Test
+    fun orientationRequestsLogMonotonicIdsAndDebounceCompletion() = runTest {
+        val orientationListener = startRecordingAndCaptureOrientationListener()
+        orientationListener(mockContext)
+        orientationListener(mockContext)
+        advanceUntilIdle()
+
+        assertTrue(diagnosticMessages.any { it.contains("orientation #1 CALLBACK") })
+        assertTrue(diagnosticMessages.any { it.contains("orientation #2 CALLBACK") })
+        assertTrue(diagnosticMessages.any { it.contains("orientation #2 DEBOUNCE COMPLETE") })
+        assertTrue(diagnosticMessages.none { it.contains("orientation #1 DEBOUNCE COMPLETE") })
+    }
+    @Test
+    fun projectionLossIsLoggedBeforeRecordingCleanup() = runTest {
+        var projectionLostCallback: (() -> Unit)? = null
+        doAnswer { invocation ->
+            projectionLostCallback = invocation.getArgument(2)
+            Unit
+        }.whenever(mockDisplayRecorder).startProjection(any(), any(), any())
+
+        val engine = DetectorEngine(
+            ioDispatcher = StandardTestDispatcher(testScheduler),
+            displayConfigManager = mockDisplayConfigManager,
+            bitmapRepository = mockBitmapRepository,
+            scalingManager = mockScalingManager,
+            displayRecorder = mockDisplayRecorder,
+            actionExecutor = mockActionExecutor,
+            settingsRepository = mockSettingsRepository,
+            appComponentsProvider = mockAppComponentsProvider,
+            debuggingListener = mockDebuggingListener,
+            ocrModelsRepository = mockOcrModelsRepository,
+            diagnosticLogger = diagnosticLogger,
+        )
+        mockDisplayRecorder.stub { on { validateScreenCapture() } doReturn true }
+        engine.startScreenRecord(0, mockIntent) {}
+        advanceUntilIdle()
+
+        projectionLostCallback!!.invoke()
+        advanceUntilIdle()
+
+        val lossIndex = diagnosticMessages.indexOfFirst { it.contains("PROJECTION LOST CALLBACK RECEIVED") }
+        val cleanupIndex = diagnosticMessages.indexOfFirst { it.contains("stopScreenRecord ENTER") }
+        assertTrue(lossIndex >= 0)
+        assertTrue(cleanupIndex > lossIndex)
+    }
 
     // ---- helpers ----
 
@@ -162,6 +221,7 @@ class DetectorEngineOrientationTests {
             appComponentsProvider = mockAppComponentsProvider,
             debuggingListener = mockDebuggingListener,
             ocrModelsRepository = mockOcrModelsRepository,
+            diagnosticLogger = diagnosticLogger,
         )
 
         mockDisplayRecorder.stub { on { validateScreenCapture() } doReturn true }

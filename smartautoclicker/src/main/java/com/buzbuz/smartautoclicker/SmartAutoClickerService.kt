@@ -40,6 +40,7 @@ import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.dumb.domain.model.DumbScenario
 import com.buzbuz.smartautoclicker.core.dumb.engine.DumbEngine
 import com.buzbuz.smartautoclicker.core.processing.domain.SmartProcessingRepository
+import com.buzbuz.smartautoclicker.core.processing.diagnostics.DiagnosticLogger
 import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 import com.buzbuz.smartautoclicker.core.smart.debugging.domain.DebuggingRepository
 import com.buzbuz.smartautoclicker.feature.qstile.domain.QSTileActionHandler
@@ -86,6 +87,7 @@ class SmartAutoClickerService : AccessibilityService() {
     @Inject lateinit var appComponentsProvider: AppComponentsProvider
     @Inject lateinit var actionExecutor: AndroidActionExecutor
     @Inject lateinit var debuggingRepository: DebuggingRepository
+    @Inject lateinit var diagnosticLogger: DiagnosticLogger
     @Inject lateinit var tutorialRepository: TutorialRepository
 
     override fun onServiceConnected() {
@@ -120,6 +122,7 @@ class SmartAutoClickerService : AccessibilityService() {
                 settingsRepository = settingsRepository,
                 debuggingRepository = debuggingRepository,
                 tutorialRepository = tutorialRepository,
+                diagnosticLogger = diagnosticLogger,
                 onStart = ::onLocalServiceStarted,
                 onStop = ::onLocalServiceStopped,
             )
