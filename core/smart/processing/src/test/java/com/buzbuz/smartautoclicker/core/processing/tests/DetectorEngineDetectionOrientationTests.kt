@@ -22,6 +22,7 @@ import android.graphics.Bitmap
 import android.content.res.Configuration
 import android.graphics.Point
 import android.os.Build
+import android.os.Looper
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 
@@ -30,10 +31,17 @@ import com.buzbuz.smartautoclicker.core.base.data.AppComponentsProvider
 import com.buzbuz.smartautoclicker.core.base.identifier.Identifier
 import com.buzbuz.smartautoclicker.core.bitmaps.BitmapRepository
 import com.buzbuz.smartautoclicker.core.common.actions.AndroidActionExecutor
+import com.buzbuz.smartautoclicker.core.common.actions.model.ActionNotificationRequest
 import com.buzbuz.smartautoclicker.core.detection.ImageDetector
 import com.buzbuz.smartautoclicker.core.display.config.DisplayConfig
 import com.buzbuz.smartautoclicker.core.display.config.DisplayConfigManager
 import com.buzbuz.smartautoclicker.core.display.recorder.DisplayRecorder
+import com.buzbuz.smartautoclicker.core.domain.model.AND
+import com.buzbuz.smartautoclicker.core.domain.model.action.Notification
+import com.buzbuz.smartautoclicker.core.domain.model.action.Pause
+import com.buzbuz.smartautoclicker.core.domain.model.condition.TriggerCondition
+import com.buzbuz.smartautoclicker.core.domain.model.event.ScreenEvent
+import com.buzbuz.smartautoclicker.core.domain.model.event.TriggerEvent
 import com.buzbuz.smartautoclicker.core.domain.model.scenario.Scenario
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorEngine
 import com.buzbuz.smartautoclicker.core.processing.data.DetectorState
@@ -44,17 +52,21 @@ import com.buzbuz.smartautoclicker.core.settings.domain.SettingsRepository
 import io.mockk.MockKAnnotations
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.RelaxedMockK
 import io.mockk.verify
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
-
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -62,6 +74,8 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows.shadowOf
 
 /**
  * Tests verifying that orientation changes during DETECTING state allow the current frame to
@@ -135,6 +149,7 @@ class DetectorEngineDetectionOrientationTests {
 
     @After
     fun tearDown() {
+        Dispatchers.resetMain()
         clearAllMocks()
     }
 
@@ -232,9 +247,192 @@ class DetectorEngineDetectionOrientationTests {
         stopDetection(engine)
     }
 
+
+    @Test
+    fun `orientation during multi-hour trigger pause restarts and processes another frame`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val appContext = RuntimeEnvironment.getApplication()
+        val frameChannel = Channel<Bitmap>(capacity = Channel.UNLIMITED)
+        coEvery { mockDisplayRecorder.acquireLatestBitmap() } coAnswers { frameChannel.receive() }
+
+        val eventId = Identifier(databaseId = 2L)
+        val actionEvent = TriggerEvent(
+            id = eventId,
+            scenarioId = TEST_SCENARIO.id,
+            name = "Long break",
+            conditionOperator = AND,
+            conditions = listOf(
+                TriggerCondition.OnBroadcastReceived(
+                    id = Identifier(databaseId = 3L),
+                    eventId = eventId,
+                    name = "Start break",
+                    intentAction = "test.action.START_BREAK",
+                )
+            ),
+            actions = listOf(
+                Pause(
+                    id = Identifier(databaseId = 4L),
+                    eventId = eventId,
+                    name = "Three hour pause",
+                    priority = 0,
+                    pauseDuration = 3 * 60 * 60 * 1000L,
+                ),
+                Notification(
+                    id = Identifier(databaseId = 5L),
+                    eventId = eventId,
+                    name = "Post-pause marker",
+                    priority = 1,
+                    messageText = "finished",
+                    channelImportance = 3,
+                ),
+            ),
+        )
+        val screenEvent = ScreenEvent(
+            id = Identifier(databaseId = 6L),
+            scenarioId = TEST_SCENARIO.id,
+            name = "Still enabled",
+            conditionOperator = AND,
+            enabledOnStart = true,
+            priority = 0,
+            keepDetecting = true,
+            cooldownMs = 0L,
+        )
+        val (engine, orientationListener) = startDetectionAndCaptureOrientationListener(
+            screenEvents = listOf(screenEvent),
+            triggerEvents = listOf(actionEvent),
+            context = appContext,
+        )
+
+        appContext.sendBroadcast(Intent("test.action.START_BREAK"))
+        shadowOf(Looper.getMainLooper()).idle()
+        frameChannel.send(io.mockk.mockk())
+        runCurrent()
+        advanceTimeBy(1)
+
+        orientationListener(mockContext)
+        advanceTimeBy(ORIENTATION_DEBOUNCE_MS)
+        runCurrent()
+        verify(exactly = 0) { mockScalingManager.refreshScaling() }
+
+        // A second rotation cancels the first join waiter while the actual event action remains active.
+        orientationListener(mockContext)
+        advanceTimeBy(ORIENTATION_DEBOUNCE_MS)
+        runCurrent()
+        verify(exactly = 0) { mockScalingManager.refreshScaling() }
+
+        advanceTimeBy(3 * 60 * 60 * 1000L)
+        runCurrent()
+        verify {
+            mockActionExecutor.postNotification(
+                ActionNotificationRequest(
+                    actionId = 5L,
+                    eventId = 2L,
+                    title = "Post-pause marker",
+                    message = "finished",
+                    groupName = "Long break",
+                    importance = 3,
+                )
+            )
+        }
+
+        // The completed frame lets the orientation waiter resize and start a fresh acquisition loop.
+        advanceTimeBy(ADVANCE_MS)
+        runCurrent()
+        verify(exactly = 1) { mockScalingManager.refreshScaling() }
+        coVerify(exactly = 2) { mockDisplayRecorder.resizeDisplay(TEST_DISPLAY_SIZE) }
+        assertEquals(DetectorState.DETECTING, engine.state.value)
+
+        val restartedFrame = io.mockk.mockk<Bitmap>()
+        frameChannel.send(restartedFrame)
+        runCurrent()
+        verify { mockImageDetector.setScreenBitmap(restartedFrame, "test.app") }
+        assertEquals(DetectorState.DETECTING, engine.state.value)
+
+        stopDetection(engine)
+    }
+
+
+    @Test
+    fun `projection loss cancels a trigger pause and prevents post-pause action`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val appContext = RuntimeEnvironment.getApplication()
+        val frameChannel = Channel<Bitmap>(capacity = Channel.UNLIMITED)
+        coEvery { mockDisplayRecorder.acquireLatestBitmap() } coAnswers { frameChannel.receive() }
+
+        var projectionStopped: (() -> Unit)? = null
+        coEvery { mockDisplayRecorder.startProjection(0, mockIntent, any()) } coAnswers {
+            projectionStopped = thirdArg()
+        }
+
+        val eventId = Identifier(databaseId = 12L)
+        val triggerEvent = TriggerEvent(
+            id = eventId,
+            scenarioId = TEST_SCENARIO.id,
+            name = "Long break",
+            conditionOperator = AND,
+            conditions = listOf(
+                TriggerCondition.OnBroadcastReceived(
+                    id = Identifier(databaseId = 13L),
+                    eventId = eventId,
+                    name = "Start break",
+                    intentAction = "test.action.PROJECTION_BREAK",
+                )
+            ),
+            actions = listOf(
+                Pause(
+                    id = Identifier(databaseId = 14L),
+                    eventId = eventId,
+                    name = "Three hour pause",
+                    priority = 0,
+                    pauseDuration = 3 * 60 * 60 * 1000L,
+                ),
+                Notification(
+                    id = Identifier(databaseId = 15L),
+                    eventId = eventId,
+                    name = "Post-pause marker",
+                    priority = 1,
+                    messageText = "finished",
+                    channelImportance = 3,
+                ),
+            ),
+        )
+        val (engine, _) = startDetectionAndCaptureOrientationListener(
+            triggerEvents = listOf(triggerEvent),
+            context = appContext,
+        )
+
+        appContext.sendBroadcast(Intent("test.action.PROJECTION_BREAK"))
+        shadowOf(Looper.getMainLooper()).idle()
+        frameChannel.send(io.mockk.mockk())
+        runCurrent()
+        advanceTimeBy(1)
+
+        checkNotNull(projectionStopped).invoke()
+        runCurrent()
+
+        assertEquals(DetectorState.CREATED, engine.state.value)
+        verify(exactly = 0) {
+            mockActionExecutor.postNotification(
+                ActionNotificationRequest(
+                    actionId = 15L,
+                    eventId = 12L,
+                    title = "Post-pause marker",
+                    message = "finished",
+                    groupName = "Long break",
+                    importance = 3,
+                )
+            )
+        }
+    }
+
     // ---- helpers ----
 
-    private fun TestScope.startDetectionAndCaptureOrientationListener(): Pair<DetectorEngine, (Context) -> Unit> {
+    private fun TestScope.startDetectionAndCaptureOrientationListener(
+        screenEvents: List<ScreenEvent> = emptyList(),
+        triggerEvents: List<TriggerEvent> = emptyList(),
+        context: Context = mockContext,
+        onRecordingStopped: (() -> Unit)? = null,
+    ): Pair<DetectorEngine, (Context) -> Unit> {
         val engine = DetectorEngine(
             ioDispatcher = StandardTestDispatcher(testScheduler),
             displayConfigManager = mockDisplayConfigManager,
@@ -253,16 +451,16 @@ class DetectorEngineDetectionOrientationTests {
             capturedListener = firstArg()
         }
 
-        engine.startScreenRecord(0, mockIntent, null)
+        engine.startScreenRecord(0, mockIntent, onRecordingStopped)
         // 1 ms: enough to run the startScreenRecord coroutine (no internal delays),
         // reaching state = RECORDING without advancing any detection-loop delays.
         advanceTimeBy(1)
 
         engine.startDetection(
-            context = mockContext,
+            context = context,
             scenario = TEST_SCENARIO,
-            screenEvents = emptyList(),
-            triggerEvents = emptyList(),
+            screenEvents = screenEvents,
+            triggerEvents = triggerEvents,
             counters = emptyList(),
             liveDebugging = false,
             generateReport = false,
