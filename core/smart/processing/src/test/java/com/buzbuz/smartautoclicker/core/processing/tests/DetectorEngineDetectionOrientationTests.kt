@@ -425,6 +425,95 @@ class DetectorEngineDetectionOrientationTests {
         }
     }
 
+
+    @Test
+    fun `stopping during orientation wait leaves next detection session able to process frames`() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val appContext = RuntimeEnvironment.getApplication()
+        val frameChannel = Channel<Bitmap>(capacity = Channel.UNLIMITED)
+        coEvery { mockDisplayRecorder.acquireLatestBitmap() } coAnswers { frameChannel.receive() }
+
+        var projectionStopped: (() -> Unit)? = null
+        coEvery { mockDisplayRecorder.startProjection(0, mockIntent, any()) } coAnswers {
+            projectionStopped = thirdArg()
+        }
+
+        val eventId = Identifier(databaseId = 22L)
+        val triggerEvent = TriggerEvent(
+            id = eventId,
+            scenarioId = TEST_SCENARIO.id,
+            name = "Long break",
+            conditionOperator = AND,
+            conditions = listOf(
+                TriggerCondition.OnBroadcastReceived(
+                    id = Identifier(databaseId = 23L),
+                    eventId = eventId,
+                    name = "Start break",
+                    intentAction = "test.action.STOP_DURING_BREAK",
+                )
+            ),
+            actions = listOf(
+                Pause(
+                    id = Identifier(databaseId = 24L),
+                    eventId = eventId,
+                    name = "Three hour pause",
+                    priority = 0,
+                    pauseDuration = 3 * 60 * 60 * 1000L,
+                )
+            ),
+        )
+        val screenEvent = ScreenEvent(
+            id = Identifier(databaseId = 25L),
+            scenarioId = TEST_SCENARIO.id,
+            name = "Active after restart",
+            conditionOperator = AND,
+            enabledOnStart = true,
+            priority = 0,
+            keepDetecting = true,
+            cooldownMs = 0L,
+        )
+        val (engine, orientationListener) = startDetectionAndCaptureOrientationListener(
+            screenEvents = listOf(screenEvent),
+            triggerEvents = listOf(triggerEvent),
+            context = appContext,
+        )
+
+        appContext.sendBroadcast(Intent("test.action.STOP_DURING_BREAK"))
+        shadowOf(Looper.getMainLooper()).idle()
+        frameChannel.send(io.mockk.mockk())
+        runCurrent()
+        advanceTimeBy(1)
+
+        orientationListener(mockContext)
+        advanceTimeBy(ORIENTATION_DEBOUNCE_MS)
+        runCurrent()
+        engine.stopScreenRecord()
+        runCurrent()
+        assertEquals(DetectorState.CREATED, engine.state.value)
+
+        engine.startScreenRecord(0, mockIntent, null)
+        advanceTimeBy(1)
+        engine.startDetection(
+            context = appContext,
+            scenario = TEST_SCENARIO,
+            screenEvents = listOf(screenEvent),
+            triggerEvents = emptyList(),
+            counters = emptyList(),
+            liveDebugging = false,
+            generateReport = false,
+            imageDetectorFactory = { mockImageDetector },
+        )
+        advanceTimeBy(1)
+
+        val nextSessionFrame = io.mockk.mockk<Bitmap>()
+        frameChannel.send(nextSessionFrame)
+        runCurrent()
+
+        verify { mockImageDetector.setScreenBitmap(nextSessionFrame, "test.app") }
+        assertEquals(DetectorState.DETECTING, engine.state.value)
+        stopDetection(engine)
+    }
+
     // ---- helpers ----
 
     private fun TestScope.startDetectionAndCaptureOrientationListener(
